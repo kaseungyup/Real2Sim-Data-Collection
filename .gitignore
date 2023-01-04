@@ -3,5 +3,7 @@ __pycache__/
 classes/__pycache__/
 filter/__pycache__/
 utils/__pycache__/
+ros_np_multiarray/__pycache__/
+ros_np_multiarray/src/
 test/
 utils/__pycache__/

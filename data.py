@@ -1,7 +1,3 @@
-# if flag.flag == 1: calculate [x, y], [r, p, y] and rospublish
-                    # save camera info + tps_coef
-# rviz visualization 1)simulation trajectory 2)realtime moving snapbot 3)snapbot trajectory
-
 import cv2, os, serial, rospy
 import numpy as np
 
@@ -14,7 +10,7 @@ from visualization_msgs.msg import Marker
 from classes.timer import Timer
 from classes.visualizerclass import VisualizerClass
 from filter.mahony import Mahony
-from utils.utils_tps import get_tps_mat, get_real_xy
+from utils.utils_tps import get_tps_mat, get_real_xy_yaw
 from utils.utils_real import quaternion_to_vector
 from publisher import apriltag_publisher, rpy_publisher
 from subscriber import FlagData, SimulationData
@@ -38,7 +34,7 @@ if __name__ == '__main__':
 
     tps_coef = get_tps_mat()
 
-    rospy.init_node('spc_subscriber', anonymous=True)
+    rospy.init_node('lpc_subscriber', anonymous=True)
     print("Start visualization_engine.")
     V = VisualizerClass(name='simple viz',HZ=Hz)
 
@@ -57,17 +53,24 @@ if __name__ == '__main__':
                     zero_tick = 0
                     one_tick += 1
 
+                    # Visualizer
+                    V.reset_lines()
+                    V.reset_meshes()
+
                     # variables to calculate and publish
-                    xy_data = np.empty(shape=(0,2))
+                    xy_yaw_data = np.empty(shape=(0,3))
                     rpy_data = np.empty(shape=(0,3))
                     acc_data = deque()
                     gyro_data = deque()
                     yaw_val = 0.0
 
-                    # variables to subscribe
+                    # simulation trajectory
                     sim_data = sim_traj.traj
                     len = len(sim_data)
                     sim_data = np.array(sim_data).reshape((int(len/3),3))
+                    V.append_line(x_array=sim_data[:,0],y_array=sim_data[:,1],z=0.0,r=0.01,
+                        frame_id='map',color=ColorRGBA(1.0,0.0,0.0,1.0),marker_type=Marker.LINE_STRIP)
+                    V.publish_lines()
 
                     # manage folders
                     tm = localtime(time())
@@ -93,10 +96,6 @@ if __name__ == '__main__':
                     ego_result = cv2.VideoWriter(os.path.join(EGO_CAMERA_FOLDER, "ego.mp4"),
                                 cv2.VideoWriter_fourcc('m','p','4','v'), Hz, ego_size)
 
-                    # Visualizer
-                    V.reset_lines()
-                    V.reset_meshes()
-
                 else: # while trajectory is running
                     one_tick += 1
 
@@ -110,7 +109,7 @@ if __name__ == '__main__':
                     ego_result.write(ego_frame_flip)
 
                     # Calculate real x, y
-                    real_x, real_y = get_real_xy(tps_coef)
+                    real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef)
 
                     # Read IMU data
                     line = ser.readline()
@@ -137,7 +136,7 @@ if __name__ == '__main__':
                     yaw_data = yaw_val*100/Hz/n_mahony*R2D # degrees
                     
                     # Append data
-                    xy_data = np.append(xy_data, np.array([[real_x, real_y]]), axis=0)
+                    xy_yaw_data = np.append(xy_yaw_data, np.array([[real_x, real_y, real_yaw]]), axis=0)
                     rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
                     # Publish data
@@ -162,15 +161,13 @@ if __name__ == '__main__':
                     ego_video.stop()
                     ego_result.release()
 
-                    np.save(os.path.join(DATA_FOLDER_TIME, "position.npy"), xy_data)
-                    np.save(os.path.join(DATA_FOLDER_TIME, "orientation.npy"), rpy_data)
+                    np.save(os.path.join(DATA_FOLDER_TIME, "xy_yaw.npy"), xy_yaw_data)
+                    np.save(os.path.join(DATA_FOLDER_TIME, "rpy.npy"), rpy_data)
 
-                    # Visualizer (Blue: Real, Red: Simulation)
-                    V.append_line(x_array=xy_data[:,0],y_array=xy_data[:,1],z=0.0,r=0.01,
+                    # real trajectory
+                    V.append_line(x_array=xy_yaw_data[:,0],y_array=xy_yaw_data[:,1],z=0.0,r=0.01,
                         frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
-                    V.append_line(x_array=sim_data[:,0],y_array=sim_data[:,1],z=0.0,r=0.01,
-                        frame_id='map',color=ColorRGBA(1.0,0.0,0.0,1.0),marker_type=Marker.LINE_STRIP)
-
+                    V.publish_lines()
 
                 else: # waiting for next trajectory
                     zero_tick += 1

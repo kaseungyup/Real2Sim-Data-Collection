@@ -208,7 +208,7 @@ def get_tps_mat(VERBOSE=True):
 
     return tps_coef
 
-def get_real_xy(tps_coef):
+def get_real_xy_yaw(tps_coef):
     x = np.linspace(170,470,4)
     y = np.linspace(90,390,4)
     X, Y = np.meshgrid(x,y)
@@ -245,7 +245,7 @@ def get_real_xy(tps_coef):
     real_x = real_center_pos[0, 1]
     real_y = -real_center_pos[0, 0]
 
-    return real_x, real_y
+    return real_x, real_y, rad
 
 if __name__ == "__main__":
     get_tps_mat()

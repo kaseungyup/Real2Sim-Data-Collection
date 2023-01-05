@@ -1,11 +1,11 @@
 import rospy
 from std_msgs.msg import String, Float32MultiArray
 
-def apriltag_publisher(x_pos, y_pos):
+def apriltag_publisher(x_pos, y_pos, yaw):
     pub = rospy.Publisher('apriltag_position', String, queue_size=10)
     rospy.init_node('apriltag_publisher', anonymous=True)
 
-    pos = "%s %s" % (x_pos, y_pos)
+    pos = "%s %s %s" % (x_pos, y_pos, yaw)
     pub.publish(pos)
     
 def rpy_publisher(roll, pitch, yaw):

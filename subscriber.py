@@ -5,6 +5,7 @@ class ApriltagData():
     def __init__(self):
         self.x = 0.0
         self.y = 0.0
+        self.yaw = 0.0
         self.init_subscriber()
 
     def init_subscriber(self):
@@ -18,6 +19,7 @@ class ApriltagData():
         array = data.data.split()
         self.x = float(array[0])
         self.y = float(array[1])
+        self.yaw = float(array([2]))
 
 class RPYData():
     def __init__(self):

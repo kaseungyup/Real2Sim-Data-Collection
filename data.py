@@ -140,7 +140,7 @@ if __name__ == '__main__':
                     rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
                     # Publish data
-                    apriltag_publisher(real_x, real_y)
+                    apriltag_publisher(real_x, real_y, real_yaw)
                     rpy_publisher(roll_data, pitch_data, yaw_data)
 
                     # Visualizer

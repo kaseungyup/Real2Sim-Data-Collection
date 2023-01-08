@@ -18,7 +18,7 @@ print("Initialization complete")
 tick = 0
 
 while tmr_plot.is_notfinished():
-    while tmr_plot.do_run():
+    if tmr_plot.do_run():
         if tick < 5:
             print("STEP 1")
             flag_publisher(0)
@@ -29,9 +29,10 @@ while tmr_plot.is_notfinished():
             flag_publisher(1)
             simulation_publisher(data)
             apriltag = ApriltagData()
+            # rpy = RPYData()
+
             apriltag_current = np.array([[apriltag.x, apriltag.y, apriltag.yaw]])
             print("apriltag data: ", apriltag_current)
             
-            # rpy = RPYData()
             # rpy_current = np.array([[rpy.r_data, rpy.p_data, rpy.y_data]])
             # print("rpy data: ", rpy_current)

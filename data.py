@@ -65,9 +65,7 @@ if __name__ == '__main__':
                     yaw_val = 0.0
 
                     # simulation trajectory
-                    sim_data = sim_traj.traj
-                    len = len(sim_data)
-                    sim_data = np.array(sim_data).reshape((int(len/3),3))
+                    sim_data = np.array(sim_traj.traj).reshape((sim_traj.length, sim_traj.height))
                     V.append_line(x_array=sim_data[:,0],y_array=sim_data[:,1],z=0.0,r=0.01,
                         frame_id='map',color=ColorRGBA(1.0,0.0,0.0,1.0),marker_type=Marker.LINE_STRIP)
                     V.publish_lines()

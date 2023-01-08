@@ -3,43 +3,45 @@ from std_msgs.msg import String, Float32MultiArray
 
 class ApriltagData():
     def __init__(self):
-        self.x = 0.0
-        self.y = 0.0
-        self.yaw = 0.0
+        self.length = 0
+        self.height = 0
+        self.num = 0
+        self.traj = []
         self.isReady_tag = False
         self.init_subscriber()
 
     def init_subscriber(self):
         self.topic_sub_tag = "apriltag_position"
-        self.sub_tag = rospy.Subscriber(self.topic_sub_tag, String, self.callback)
+        self.sub_tag = rospy.Subscriber(self.topic_sub_tag, Float32MultiArray, self.callback)
         while self.isReady_tag is False: rospy.sleep(1e-3)
 
     def callback(self, data):
         self.isReady_tag = True
-        array = data.data.split()
-        self.x = float(array[0])
-        self.y = float(array[1])
-        self.yaw = float(array[2])
+        self.length = int(data.layout.dim[0].size)
+        self.height = int(data.layout.dim[1].size)
+        self.num = int(data.layout.dim[2].size)
+        self.traj = data.data
 
 class RPYData():
     def __init__(self):
-        self.r_data = 0.0
-        self.p_data = 0.0
-        self.y_data = 0.0
+        self.length = 0
+        self.height = 0
+        self.num = 0
+        self.traj = []
         self.isReady_rpy = False
         self.init_subscriber()
 
     def init_subscriber(self):
         self.topic_sub_rpy = "rpy"
-        self.sub_rpy = rospy.Subscriber(self.topic_sub_rpy, String, self.callback)
+        self.sub_rpy = rospy.Subscriber(self.topic_sub_rpy, Float32MultiArray, self.callback)
         while self.isReady_rpy is False: rospy.sleep(1e-3)
 
     def callback(self, data):
         self.isReady_rpy = True
-        array = data.data.split()
-        self.r_data = float(array[0])
-        self.p_data = float(array[1])
-        self.y_data = float(array[2])
+        self.length = int(data.layout.dim[0].size)
+        self.height = int(data.layout.dim[1].size)
+        self.num = int(data.layout.dim[2].size)
+        self.traj = data.data
 
 class FlagData():
     def __init__(self):

@@ -1,17 +1,13 @@
 import rospy
 from std_msgs.msg import String, Float32MultiArray
 
-def apriltag_publisher(x_pos, y_pos, yaw):
-    pub = rospy.Publisher('apriltag_position', String, queue_size=10)
-
-    pos = "%s %s %s" % (x_pos, y_pos, yaw)
-    pub.publish(pos)
+def apriltag_publisher(apriltag_data):
+    pub = rospy.Publisher('apriltag_position', Float32MultiArray, queue_size=10)
+    pub.publish(apriltag_data)
     
-def rpy_publisher(roll, pitch, yaw):
-    pub = rospy.Publisher('rpy', String, queue_size=10)
-
-    rpy = "%s %s %s" % (roll, pitch, yaw)
-    pub.publish(rpy)
+def rpy_publisher(rpy_data):
+    pub = rospy.Publisher('rpy', Float32MultiArray, queue_size=10)
+    pub.publish(rpy_data)
 
 def flag_publisher(flag):
     pub = rospy.Publisher('flag', String, queue_size=10)
@@ -21,7 +17,5 @@ def flag_publisher(flag):
 
 def simulation_publisher(sim_traj):
     pub = rospy.Publisher('simulation_position', Float32MultiArray, queue_size=10)
-
-    traj = sim_traj
-    pub.publish(traj)
+    pub.publish(sim_traj)
 

@@ -14,6 +14,7 @@ from utils.utils_tps import get_tps_mat, get_real_xy_yaw
 from utils.utils_real import quaternion_to_vector
 from publisher import apriltag_publisher, rpy_publisher
 from subscriber import FlagData, SimulationData
+from ros_np_multiarray import ros_np_multiarray as rnm
 
 Hz = 50
 n_mahony = 10 # number of previous data for mahony filter
@@ -42,6 +43,10 @@ if __name__ == '__main__':
     sim_traj = SimulationData()
     zero_tick = 0
     one_tick = 0
+    epoch = 0
+
+    apriltag_batch = []
+    rpy_batch = []
 
     tmr_plot = Timer(_name='Plot',_HZ=Hz,_MAX_SEC=np.inf,_VERBOSE=True)
     tmr_plot.start()
@@ -137,10 +142,6 @@ if __name__ == '__main__':
                     xy_yaw_data = np.append(xy_yaw_data, np.array([[real_x, real_y, real_yaw]]), axis=0)
                     rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
-                    # Publish data
-                    apriltag_publisher(real_x, real_y, real_yaw)
-                    rpy_publisher(roll_data, pitch_data, yaw_data)
-
                     # Visualizer
                     V.append_mesh(x=real_x,y=real_y,z=0,scale=1.0,dae_path=stl_path,
                         frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
@@ -162,6 +163,11 @@ if __name__ == '__main__':
                     np.save(os.path.join(DATA_FOLDER_TIME, "xy_yaw.npy"), xy_yaw_data)
                     np.save(os.path.join(DATA_FOLDER_TIME, "rpy.npy"), rpy_data)
 
+                    # Append batch
+                    apriltag_batch.append(xy_yaw_data)
+                    rpy_batch.append(rpy_data)
+                    epoch += 1
+
                     # real trajectory
                     V.append_line(x_array=xy_yaw_data[:,0],y_array=xy_yaw_data[:,1],z=0.0,r=0.01,
                         frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
@@ -169,6 +175,15 @@ if __name__ == '__main__':
 
                 else: # waiting for next trajectory
                     zero_tick += 1
+                    if epoch == 10:
+                        apriltag_batch = np.stack(apriltag_batch, axis=-1)
+                        apriltag_batch = rnm.to_multiarray_f32(apriltag_batch)
+
+                        rpy_batch = np.stack(rpy_batch, axis=-1)
+                        rpy_batch = rnm.to_multiarray_f32(rpy_batch)
+
+                        apriltag_publisher(apriltag_batch)
+                        rpy_publisher(rpy_batch)
 
         rospy.sleep(1e-8)
 

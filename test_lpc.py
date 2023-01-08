@@ -9,13 +9,26 @@ tmr_plot = Timer(_name='Plot',_HZ=1,_MAX_SEC=np.inf,_VERBOSE=True)
 tmr_plot.start()
 flag = FlagData()
 
+zero_tick = 0
+one_tick = 0
+
 while tmr_plot.is_notfinished():
     if tmr_plot.do_run():
         if flag.flag:
-            sim_traj = SimulationData()
-            sim_data = np.array(sim_traj.traj).reshape((sim_traj.length, sim_traj.height))
-            print(sim_data.shape)
+            if one_tick == 0: # reset variables and initialize
+                zero_tick = 0
+                one_tick += 1
+                print("check 2")
+            else:
+                sim_traj = SimulationData()
+                sim_data = np.array(sim_traj.traj).reshape((sim_traj.length, sim_traj.height))
+                print(sim_data.shape)
 
         else:
-            print(tmr_plot.tick)
+            if zero_tick == 0: # trajectory just ended
+                one_tick = 0
+                zero_tick += 1
+                print("check 1")
+            else:
+                print(tmr_plot.tick)
 

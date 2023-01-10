@@ -63,6 +63,7 @@ class SimulationData():
     def __init__(self):
         self.length = 0
         self.height = 0
+        self.num = 0
         self.traj = []
         self.isReady_sim = False
         self.init_subscriber()
@@ -76,4 +77,5 @@ class SimulationData():
         self.isReady_sim = True
         self.length = int(data.layout.dim[0].size)
         self.height = int(data.layout.dim[1].size)
+        self.num = int(data.layout.dim[2].size)
         self.traj = data.data

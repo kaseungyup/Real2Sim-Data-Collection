@@ -102,23 +102,23 @@ if __name__ == '__main__':
                         os.mkdir(DATA_FOLDER_TIME)
 
                     DATA_FOLDER_EPOCH = os.path.join(DATA_FOLDER_TIME, "Epoch %d"%epoch)
-                    # RS_CAMERA_FOLDER = os.path.join(DATA_FOLDER_EPOCH, "realsense_camera")
+                    RS_CAMERA_FOLDER = os.path.join(DATA_FOLDER_EPOCH, "realsense_camera")
                     # EGO_CAMERA_FOLDER = os.path.join(DATA_FOLDER_EPOCH, "egocentric_camera")
                     os.mkdir(DATA_FOLDER_EPOCH)
-                    # os.mkdir(RS_CAMERA_FOLDER)
+                    os.mkdir(RS_CAMERA_FOLDER)
                     # os.mkdir(EGO_CAMERA_FOLDER)
 
                     # manage video data
-                    # rs_video = WebcamVideoStream(src=REALSENSE_CAMERA_NUMBER).start()
-                    # rs_frame_width = rs_video.frame.shape[1]
-                    # rs_frame_height = rs_video.frame.shape[0]
-                    # rs_size = (rs_frame_width, rs_frame_height)
-                    # rs_result = cv2.VideoWriter(os.path.join(RS_CAMERA_FOLDER, "rs.mp4"),
-                    #             cv2.VideoWriter_fourcc('m','p','4','v'), Hz, rs_size)
+                    rs_video = WebcamVideoStream(src=REALSENSE_CAMERA_NUMBER).start()
+                    rs_frame_width = 640
+                    rs_frame_height = 480
+                    rs_size = (rs_frame_width, rs_frame_height)
+                    rs_result = cv2.VideoWriter(os.path.join(RS_CAMERA_FOLDER, "rs.mp4"),
+                                cv2.VideoWriter_fourcc('m','p','4','v'), Hz, rs_size)
 
                     # ego_video = WebcamVideoStream(src=EGOCENTRIC_CAMERA_NUMBER).start()
-                    # ego_frame_width = ego_video.frame.shape[1]
-                    # ego_frame_height = ego_video.frame.shape[0]
+                    # ego_frame_width = 640
+                    # ego_frame_height = 480
                     # ego_size = (ego_frame_width, ego_frame_height)
                     # ego_result = cv2.VideoWriter(os.path.join(EGO_CAMERA_FOLDER, "ego.mp4"),
                     #             cv2.VideoWriter_fourcc('m','p','4','v'), Hz, ego_size)
@@ -132,8 +132,8 @@ if __name__ == '__main__':
                     one_tick += 1
 
                     # Realsense camera video
-                    # rs_frame = rs_video.frame
-                    # rs_result.write(rs_frame)
+                    rs_frame = rs_video.frame
+                    rs_result.write(rs_frame)
 
                     # Egocentric camera video
                     # ego_frame = ego_video.frame

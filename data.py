@@ -1,5 +1,6 @@
 import cv2, os, serial, rospy
 import numpy as np
+import pyrealsense2 as rs
 
 from time import time, localtime
 from collections import deque
@@ -34,7 +35,14 @@ if __name__ == '__main__':
     # IMU_USB_NUMBER = 1
     # ser = serial.Serial('/dev/ttyUSB{}'.format(IMU_USB_NUMBER), 115200, timeout=1)
 
-    # tps_coef = get_tps_mat()
+    pipeline = rs.pipeline()
+    config = rs.config()
+    align_to = rs.stream.color
+    align = rs.align(align_to)
+    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+    tps_coef = get_tps_mat(pipeline, align)
 
     rospy.init_node('lpc_subscriber', anonymous=True)
     print("1. Start visualization_engine.")
@@ -42,6 +50,8 @@ if __name__ == '__main__':
 
     flag = FlagData()
     sim_traj = SimulationData()
+    sim_len = sim_traj.length
+    print("Simulation trajectory length: ", sim_len)
     one_tick = 0
     epoch = 0
 
@@ -93,12 +103,12 @@ if __name__ == '__main__':
                     # os.mkdir(EGO_CAMERA_FOLDER)
 
                     # manage video data
-                    # rs_video = WebcamVideoStream(src=REALSENSE_CAMERA_NUMBER).start()
-                    # rs_frame_width = rs_video.frame.shape[1]
-                    # rs_frame_height = rs_video.frame.shape[0]
-                    # rs_size = (rs_frame_width, rs_frame_height)
-                    # rs_result = cv2.VideoWriter(os.path.join(RS_CAMERA_FOLDER, "rs.mp4"),
-                    #             cv2.VideoWriter_fourcc('m','p','4','v'), Hz, rs_size)
+                    rs_video = WebcamVideoStream(src=REALSENSE_CAMERA_NUMBER).start()
+                    rs_frame_width = rs_video.frame.shape[1]
+                    rs_frame_height = rs_video.frame.shape[0]
+                    rs_size = (rs_frame_width, rs_frame_height)
+                    rs_result = cv2.VideoWriter(os.path.join(RS_CAMERA_FOLDER, "rs.mp4"),
+                                cv2.VideoWriter_fourcc('m','p','4','v'), Hz, rs_size)
 
                     # ego_video = WebcamVideoStream(src=EGOCENTRIC_CAMERA_NUMBER).start()
                     # ego_frame_width = ego_video.frame.shape[1]
@@ -125,7 +135,7 @@ if __name__ == '__main__':
                     # ego_result.write(ego_frame_flip)
 
                     # Calculate real x, y
-                    # real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef)
+                    real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef, pipeline)
 
                     # Read IMU data
                     # line = ser.readline()
@@ -152,8 +162,10 @@ if __name__ == '__main__':
                     # yaw_data = yaw_val*100/Hz/n_mahony*R2D # degrees
                     
                     # Append data
-                    # xy_yaw_data = np.append(xy_yaw_data, np.array([[real_x, real_y, real_yaw]]), axis=0)
-                    xy_yaw_data = np.append(xy_yaw_data, np.array([[0, 0, 0]]), axis=0)
+                    xy_yaw_data = np.append(xy_yaw_data, np.array([[real_x, real_y, real_yaw]]), axis=0)
+                    print(xy_yaw_data.shape)
+                    # xy_yaw_data = np.append(xy_yaw_data, np.array([[0, 0, 0]]), axis=0)
+
                     # rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
                     # Visualizer
@@ -182,7 +194,7 @@ if __name__ == '__main__':
                     # np.save(os.path.join(DATA_FOLDER_EPOCH, "rpy.npy"), rpy_data)
 
                     # Append batch
-                    apriltag_batch.append(xy_yaw_data)
+                    apriltag_batch.append(xy_yaw_data[:sim_len,:])
                     # rpy_batch.append(rpy_data)
 
                     # real trajectory
@@ -192,7 +204,6 @@ if __name__ == '__main__':
 
                 if epoch == 10:
                     apriltag_batch = rnm.to_multiarray_f32(np.array(apriltag_batch))
-
                     # rpy_batch = rnm.to_multiarray_f32(np.array(rpy_batch))
 
                     apriltag_publisher(apriltag_batch)

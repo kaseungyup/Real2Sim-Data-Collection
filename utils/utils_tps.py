@@ -75,12 +75,12 @@ def tps_trans(source, control, coef):
     trans_after = np.dot(L, coef)
     return trans_after
 
-def get_tps_mat(VERBOSE=True):
-    pipeline = rs.pipeline()
-    config = rs.config()
-    align_to = rs.stream.color
-    align = rs.align(align_to)
-    pipeline_wrapper = rs.pipeline_wrapper(pipeline)
+def get_tps_mat(pipeline, align): #, VERBOSE=True):
+    # pipeline = rs.pipeline()
+    # config = rs.config()
+    # align_to = rs.stream.color
+    # align = rs.align(align_to)
+    # pipeline_wrapper = rs.pipeline_wrapper(pipeline)
 
     x = np.linspace(170,470,4)
     y = np.linspace(90,390,4)
@@ -88,11 +88,11 @@ def get_tps_mat(VERBOSE=True):
     ctrl_xy = np.stack([X,Y],axis=2).reshape(-1,2)
     real_pt = []
 
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+    # config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    # config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-    # pipeline
-    pipeline.start(config)
+    # # pipeline
+    # pipeline.start(config)
     while True:
         # Wait for a coherent pair of frames: depth and color
         frames = pipeline.wait_for_frames()
@@ -138,15 +138,15 @@ def get_tps_mat(VERBOSE=True):
             break
 
     # Stop streaming
-    pipeline.stop()
+    # pipeline.stop()
     cv2.destroyAllWindows()
 
     # Do plane regression
-    real_x, real_y, real_z = zip(*real_pt)
+    # real_x, real_y, real_z = zip(*real_pt)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(real_x, real_y, real_z)
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(real_x, real_y, real_z)
 
     z_errors = functools.partial(error, points=real_pt)
     plane_params = [0, 0, 0]
@@ -158,10 +158,10 @@ def get_tps_mat(VERBOSE=True):
 
     point  = np.array([0.0, 0.0, c])
     normal = np.array(cross([1,0,a], [0,1,b]))
-    d = -point.dot(normal)
-    plane_x, plane_y = np.meshgrid([-2,2], [-2,2])
-    plane_z = (-normal[0] * plane_x - normal[1] * plane_y - d) * 1. /normal[2]
-    ax.plot_surface(plane_x, plane_y, plane_z, alpha=0.2, color=[0,1,0])
+    # d = -point.dot(normal)
+    # plane_x, plane_y = np.meshgrid([-2,2], [-2,2])
+    # plane_z = (-normal[0] * plane_x - normal[1] * plane_y - d) * 1. /normal[2]
+    # ax.plot_surface(plane_x, plane_y, plane_z, alpha=0.2, color=[0,1,0])
 
     plane = Plane(point=point, normal=normal)
     projected_ls = []
@@ -172,27 +172,27 @@ def get_tps_mat(VERBOSE=True):
         # vector_projection = Vector.from_points(point, point_projected)
         projected_ls.append(point_projected)
 
-    proj_x, proj_y, proj_z = zip(*projected_ls)
-    ax.scatter(proj_x, proj_y, proj_z, c='r')
+    # proj_x, proj_y, proj_z = zip(*projected_ls)
+    # ax.scatter(proj_x, proj_y, proj_z, c='r')
 
     vector_z = np.array([0,0,-1])
     RotXYZ = get_rotxyz(vector_z, normal, projected_ls)
     RotXYZ[:,2] = 0
 
-    rot_x, rot_y, rot_z = zip(*RotXYZ)
-    ax.scatter(rot_x, rot_y, rot_z, c='g')
-    plt.show()
+    # rot_x, rot_y, rot_z = zip(*RotXYZ)
+    # ax.scatter(rot_x, rot_y, rot_z, c='g')
+    # plt.show()
 
     target_xy = np.zeros_like(ctrl_xy)
     target_xy[:,:] = RotXYZ[:,0:2]
 
     tps_coef = get_tps_coef(ctrl_xy,target_xy)
 
-    input_pts = np.linspace(100, 400, 15)
-    input_pt = np.zeros((input_pts.shape[0],2))
-    input_pt [:,0] = 340
-    input_pt [:,1] = input_pts
-    output_pt = tps_trans(input_pt, ctrl_xy, tps_coef)
+    # input_pts = np.linspace(100, 400, 15)
+    # input_pt = np.zeros((input_pts.shape[0],2))
+    # input_pt [:,0] = 340
+    # input_pt [:,1] = input_pts
+    # output_pt = tps_trans(input_pt, ctrl_xy, tps_coef)
 
     # if VERBOSE:
     #     plt.figure(figsize=(10,5))
@@ -208,18 +208,18 @@ def get_tps_mat(VERBOSE=True):
 
     return tps_coef
 
-def get_real_xy_yaw(tps_coef):
+def get_real_xy_yaw(tps_coef, pipeline):
     x = np.linspace(170,470,4)
     y = np.linspace(90,390,4)
     X, Y = np.meshgrid(x,y)
     ctrl_xy = np.stack([X,Y],axis=2).reshape(-1,2)
     real_center_pos = np.zeros([1,2])
 
-    pipeline = rs.pipeline()
-    config = rs.config()
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-    pipeline.start(config)
+    # pipeline = rs.pipeline()
+    # config = rs.config()
+    # config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    # config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+    # pipeline.start(config)
 
     frames = pipeline.wait_for_frames()
     color_frame = frames.get_color_frame()

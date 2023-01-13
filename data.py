@@ -176,11 +176,9 @@ if __name__ == '__main__':
                     rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
                     # Visualizer
-                    # V.append_mesh(x=real_x,y=real_y,z=0,scale=1.0,dae_path=stl_path,
-                    # V.append_mesh(x=0,y=0,z=0,scale=1.0,dae_path=stl_path,
+                    # V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
                     #     frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
-                    #     roll=0,pitch=0,yaw=0)
-                        # roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
+                    #     roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
 
                     # V.publish_meshes()
                     V.publish_lines()
@@ -195,8 +193,8 @@ if __name__ == '__main__':
                 else:
                     if epoch > 0:
                         # save videos and variables
-                        # rs_video.stop()
-                        # rs_result.release()
+                        rs_video.stop()
+                        rs_result.release()
                         # ego_video.stop()
                         # ego_result.release()
 
@@ -210,7 +208,7 @@ if __name__ == '__main__':
                         rpy_batch.append(rpy_data[:sim_len,:])
 
                         # real trajectory
-                        V.append_line(x_array=xy_yaw_data[:,0],y_array=xy_yaw_data[:,1],z=0.0,r=0.01,
+                        V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
                             frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
                         V.publish_lines()
 

@@ -56,6 +56,7 @@ if __name__ == '__main__':
     zero_tick = 0
     one_tick = 0
     epoch = 0
+    max_epoch = 10
 
     apriltag_batch = []
     rpy_batch = []
@@ -87,7 +88,7 @@ if __name__ == '__main__':
 
                     # simulation trajectory
                     sim_data = np.array(sim_traj.traj).reshape((sim_traj.length, sim_traj.height, sim_traj.num))
-                    curr_traj = sim_data[epoch,:,:]
+                    curr_traj = sim_data[epoch%max_epoch,:,:]
                     print(curr_traj.shape)
 
                     V.append_line(x_array=curr_traj[:,0],y_array=curr_traj[:,1],z=0.0,r=0.01,
@@ -192,7 +193,7 @@ if __name__ == '__main__':
                     print("3. Waiting")
 
                 else:
-                    if epoch > 0:
+                    if epoch%max_epoch > 0:
                         # save videos and variables
                         # rs_video.stop()
                         # rs_result.release()
@@ -213,7 +214,7 @@ if __name__ == '__main__':
                         #     frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
                         V.publish_lines()
 
-                    if epoch == 2:
+                    if epoch%max_epoch == 2:
                         apriltag_batch_ros = np.stack(apriltag_batch, axis = -1)
                         apriltag_batch_ros = rnm.to_multiarray_f32(apriltag_batch_ros)
                         # rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch))

@@ -316,7 +316,7 @@ if __name__ == '__main__':
                 frame_id='map',color=ColorRGBA(1.0,1.0,1.0,0.5))
 
             # Append mesh
-            dae_path = 'file:///home/rilab/Project/Snapbot-Demo/ROS_viz_engine/body_mesh.dae'
+            dae_path = 'file:///home/rilab/Project/real2sim-data-collection/ROS_viz_engine/snapbot_super_low_resol.stl'
             n_person = 5
             for p_idx in range(n_person):
                 color = cm.hsv( (float(p_idx)/n_person) )  # color not working (bug in kinetic)

@@ -49,10 +49,10 @@ if __name__ == '__main__':
     rospy.init_node('lpc_subscriber', anonymous=True)
     print("1. Start visualization_engine.")
     V = VisualizerClass(name='simple viz',HZ=Hz)
-    """
+    
     flag = FlagData()
     sim_traj = SimulationData()
-    """
+    
     zero_tick = 0
     one_tick = 0
     epoch = 0
@@ -71,8 +71,7 @@ if __name__ == '__main__':
 
     while tmr_plot.is_notfinished():
         if tmr_plot.do_run():
-            """if flag.flag: # new trajectory starts"""
-            if FlagData().flag: # new trajectory starts
+            if flag.flag: # new trajectory starts
                 if one_tick == 0: # reset variables and initialize
                     zero_tick = 0
                     one_tick += 1
@@ -89,8 +88,7 @@ if __name__ == '__main__':
                     # yaw_val = 0.0
 
                     # simulation trajectory
-                    """sim_data = np.array(sim_traj.traj).reshape((sim_traj.length, sim_traj.height, sim_traj.num))"""
-                    sim_data = np.array(SimulationData().traj).reshape((SimulationData().length, SimulationData().height, SimulationData().num))
+                    sim_data = np.array(sim_traj.traj).reshape((sim_traj.length, sim_traj.height, sim_traj.num))
                     curr_traj = sim_data[epoch%max_epoch,:,:]
                     print(curr_traj.shape)
 
@@ -196,12 +194,12 @@ if __name__ == '__main__':
                         tm = localtime(time())
                         DATA_FOLDER_TIME = os.path.join(DATA_FOLDER, "%d%02d%02d-%02d:%02d:%02d" % (tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec))
                         os.mkdir(DATA_FOLDER_TIME)
-                        """
+                        
                         flag = FlagData()
                         sim_traj = SimulationData()
                         sim_len = sim_traj.length
                         print("Simulation trajectory length: ", sim_len)
-                        """
+                        
                     # end of current cycle
                     elif epoch%max_epoch == max_epoch-1:
                         apriltag_batch_ros = rnm.to_multiarray_f32(apriltag_batch_ros)

@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
                     # Visualizer
                     V.reset_lines()
-                    # V.reset_meshes()
+                    V.reset_meshes()
 
                     # variables to calculate and publish
                     xy_yaw_data = np.empty(shape=(0,3))
@@ -99,11 +99,12 @@ if __name__ == '__main__':
                    
                     print("4. Simulation data published")
 
-                    # DATA_FOLDER_EPOCH = os.path.join(DATA_FOLDER_TIME, "Epoch %d"%(epoch%max_epoch))
+                    DATA_FOLDER_EPOCH = os.path.join(DATA_FOLDER_TIME, "Epoch %d"%(epoch%max_epoch))
+                    os.mkdir(DATA_FOLDER_EPOCH)
+
                     # RS_CAMERA_FOLDER = os.path.join(DATA_FOLDER_EPOCH, "realsense_camera")
                     # EGO_CAMERA_FOLDER = os.path.join(DATA_FOLDER_EPOCH, "egocentric_camera")
-                    # os.mkdir(DATA_FOLDER_EPOCH)
-                    # os.mkdir(RS_CAMERA_FOLDER)rs_
+                    # os.mkdir(RS_CAMERA_FOLDER)
                     # os.mkdir(EGO_CAMERA_FOLDER)
 
                     # manage video data
@@ -176,52 +177,77 @@ if __name__ == '__main__':
                     # rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
                     # Visualizer
-                    # V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
-                    #     frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
-                    #     roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
+                    V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
+                        frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
+                        roll=0,pitch=0*D2R,yaw=0)
+                        # roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
 
-                    # V.publish_meshes()
+                    V.publish_meshes()
                     V.publish_lines()
 
 
-            else: # trajectory has ended    
-                if zero_tick == 0:
-                    one_tick = 0
-                    zero_tick += 1
-                    print("3. Waiting")
+            else: # trajectory has ended 
+                if epoch%max_epoch == 0: # start/end of each cycle
+                    if zero_tick == 0:
+                        one_tick = 0
+                        zero_tick += 1
 
-                else:
-                    # start of new cycle
-                    if epoch == 0:
-                        # tm = localtime(time())
-                        # DATA_FOLDER_TIME = os.path.join(DATA_FOLDER, "%d%02d%02d-%02d:%02d:%02d" % (tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec))
-                        # if not os.path.isdir(DATA_FOLDER_TIME): os.mkdir(DATA_FOLDER_TIME)
-                       
+                        tm = localtime(time())
+                        DATA_FOLDER_TIME = os.path.join(DATA_FOLDER, "%d%02d%02d-%02d:%02d:%02d" % (tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec))
+                        if not os.path.isdir(DATA_FOLDER_TIME): os.mkdir(DATA_FOLDER_TIME)
+
+                        if epoch != 0: # end of current cycle
+                            np.save(os.path.join(DATA_FOLDER_EPOCH, "xy_yaw.npy"), xy_yaw_data)
+                            # np.save(os.path.join(DATA_FOLDER_EPOCH, "rpy.npy"), rpy_data)
+
+                            # Append batch
+                            if xy_yaw_data.shape[0] > desired_len:
+                                apriltag_traj = xy_yaw_data[:desired_len,:]
+                            else:
+                                apriltag_traj = np.zeros(shape=(desired_len,xy_yaw_data.shape[1]))
+                                apriltag_traj[:xy_yaw_data.shape[0],:] = xy_yaw_data
+                                apriltag_traj[xy_yaw_data.shape[0]:,:] = xy_yaw_data[-1,:]
+
+                            apriltag_traj = apriltag_traj - [apriltag_traj[0,0], apriltag_traj[0,1], 0]
+                            apriltag_batch.append(apriltag_traj)
+                            # rpy_batch.append(rpy_data[:sim_len,:])
+
+                            apriltag_batch_ros = rnm.to_multiarray_f32(np.array(apriltag_batch[-max_epoch:]))
+                            # rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-max_epoch:]))
+                            
+                            answer = str(input("Are you ready to publish data? (y/n): "))
+                            while answer.lower() == 'y':
+                                AprilTag.publish_once(apriltag_batch_ros)
+                                # rpy_publisher(rpy_batch_ros)
+                                answer = str(input("Continue? (y/n): "))
+                                print("Publishing Data")
+
+                        print("3. Waiting")
                         flag = FlagData.flag
                         sim_len = SimTraj.length
                         print("Simulation trajectory length: ", sim_len)
-                       
-                    # end of current cycle
-                    elif epoch == max_epoch:
-                        apriltag_batch_ros = rnm.to_multiarray_f32(np.array(apriltag_batch))
-                        # rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch))
+                        print("epoch: ", epoch%max_epoch)
 
-                        answer = str(input("Are you ready to publish data? (y/n): "))
-                        while answer.lower() == 'y':
-                            AprilTag.publish_once(apriltag_batch_ros)
-                            answer = str(input("Continue? (y/n): "))
-                            print("Publishing Data")
-                            # rpy_publisher(rpy_batch_ros)
-
-                   
                     else:
+                        # real trajectory
+                        V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
+                            frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
+                        V.publish_lines()
+                                   
+                else:
+                    if zero_tick == 0:
+                        one_tick = 0
+                        zero_tick += 1
+                        print("3. Waiting")
+                        print("epoch: ", epoch%max_epoch)
+
                         # save videos and variables
                         # rs_video.stop()
                         # rs_result.release()
                         # ego_video.stop()
                         # ego_result.release()
 
-                        # np.save(os.path.join(DATA_FOLDER_EPOCH, "xy_yaw.npy"), xy_yaw_data)
+                        np.save(os.path.join(DATA_FOLDER_EPOCH, "xy_yaw.npy"), xy_yaw_data)
                         # np.save(os.path.join(DATA_FOLDER_EPOCH, "rpy.npy"), rpy_data)
 
                         # Append batch
@@ -235,12 +261,12 @@ if __name__ == '__main__':
                         apriltag_traj = apriltag_traj - [apriltag_traj[0,0], apriltag_traj[0,1], 0]
                         apriltag_batch.append(apriltag_traj)
                         # rpy_batch.append(rpy_data[:sim_len,:])
-
+                    
+                    else:
                         # real trajectory
-                        # V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
-                        #     frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
+                        V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
+                            frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
                         V.publish_lines()
-                        print("epoch: ", epoch)
 
         rospy.sleep(1e-8)
 

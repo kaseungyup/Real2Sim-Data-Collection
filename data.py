@@ -226,7 +226,7 @@ if __name__ == '__main__':
                         flag = FlagData.flag
                         sim_len = SimTraj.length
                         print("Simulation trajectory length: ", sim_len)
-                        print("epoch: ", epoch%max_epoch)
+                        print("Start new cycle")
 
                     else:
                         # real trajectory

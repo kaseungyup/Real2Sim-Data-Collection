@@ -197,6 +197,12 @@ if __name__ == '__main__':
                         if not os.path.isdir(DATA_FOLDER_TIME): os.mkdir(DATA_FOLDER_TIME)
 
                         if epoch != 0: # end of current cycle
+                            # save videos and variables
+                            # rs_video.stop()
+                            # rs_result.release()
+                            # ego_video.stop()
+                            # ego_result.release()
+
                             np.save(os.path.join(DATA_FOLDER_EPOCH, "xy_yaw.npy"), xy_yaw_data)
                             # np.save(os.path.join(DATA_FOLDER_EPOCH, "rpy.npy"), rpy_data)
 

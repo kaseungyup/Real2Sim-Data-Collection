@@ -142,11 +142,11 @@ def get_tps_mat(pipeline, align): #, VERBOSE=True):
     cv2.destroyAllWindows()
 
     # Do plane regression
-    # real_x, real_y, real_z = zip(*real_pt)
+    real_x, real_y, real_z = zip(*real_pt)
 
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    # ax.scatter(real_x, real_y, real_z)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(real_x, real_y, real_z)
 
     z_errors = functools.partial(error, points=real_pt)
     plane_params = [0, 0, 0]
@@ -158,10 +158,10 @@ def get_tps_mat(pipeline, align): #, VERBOSE=True):
 
     point  = np.array([0.0, 0.0, c])
     normal = np.array(cross([1,0,a], [0,1,b]))
-    # d = -point.dot(normal)
-    # plane_x, plane_y = np.meshgrid([-2,2], [-2,2])
-    # plane_z = (-normal[0] * plane_x - normal[1] * plane_y - d) * 1. /normal[2]
-    # ax.plot_surface(plane_x, plane_y, plane_z, alpha=0.2, color=[0,1,0])
+    d = -point.dot(normal)
+    plane_x, plane_y = np.meshgrid([-2,2], [-2,2])
+    plane_z = (-normal[0] * plane_x - normal[1] * plane_y - d) * 1. /normal[2]
+    ax.plot_surface(plane_x, plane_y, plane_z, alpha=0.2, color=[0,1,0])
 
     plane = Plane(point=point, normal=normal)
     projected_ls = []
@@ -172,16 +172,16 @@ def get_tps_mat(pipeline, align): #, VERBOSE=True):
         # vector_projection = Vector.from_points(point, point_projected)
         projected_ls.append(point_projected)
 
-    # proj_x, proj_y, proj_z = zip(*projected_ls)
-    # ax.scatter(proj_x, proj_y, proj_z, c='r')
+    proj_x, proj_y, proj_z = zip(*projected_ls)
+    ax.scatter(proj_x, proj_y, proj_z, c='r')
 
     vector_z = np.array([0,0,-1])
     RotXYZ = get_rotxyz(vector_z, normal, projected_ls)
     RotXYZ[:,2] = 0
 
-    # rot_x, rot_y, rot_z = zip(*RotXYZ)
-    # ax.scatter(rot_x, rot_y, rot_z, c='g')
-    # plt.show()
+    rot_x, rot_y, rot_z = zip(*RotXYZ)
+    ax.scatter(rot_x, rot_y, rot_z, c='g')
+    plt.show()
 
     target_xy = np.zeros_like(ctrl_xy)
     target_xy[:,:] = RotXYZ[:,0:2]

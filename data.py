@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # EGOCENTRIC_CAMERA_NUMBER = 4
     # IMU_USB_NUMBER = 0
     # ser = serial.Serial('/dev/ttyUSB{}'.format(IMU_USB_NUMBER), 115200, timeout=1)
-
+    """
     pipeline = rs.pipeline()
     config = rs.config()
     align_to = rs.stream.color
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     pipeline.start(config)
 
     tps_coef = get_tps_mat(pipeline, align)
-
+    """
     rospy.init_node('subscriber', anonymous=True)
     print("1. Start visualization_engine.")
     V = VisualizerClass(name='simple viz',HZ=Hz)
@@ -93,10 +93,10 @@ if __name__ == '__main__':
                     sim_data = np.array(SimTraj.traj).reshape((SimTraj.length, SimTraj.height, SimTraj.num))
                     curr_traj = sim_data[epoch%max_epoch,:,:]
                     print(curr_traj.shape)
-
+                    """
                     V.append_line(x_array=curr_traj[:,0],y_array=curr_traj[:,1],z=0.0,r=0.01,
                         frame_id='map',color=ColorRGBA(1.0,0.0,0.0,1.0),marker_type=Marker.LINE_STRIP)
-                   
+                    """
                     print("4. Simulation data published")
 
                     DATA_FOLDER_EPOCH = os.path.join(DATA_FOLDER_TIME, "Epoch %d"%(epoch%max_epoch))
@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
                     # Calculate real x, y
                     try:
-                        real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef, pipeline)
+                        """real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef, pipeline)"""
                         prev_real_x, prev_real_y, prev_real_yaw = real_x, real_y, real_yaw
                     except:
                         real_x, real_y, real_yaw = prev_real_x, prev_real_y, prev_real_yaw
@@ -177,13 +177,13 @@ if __name__ == '__main__':
                     # rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
                     # Visualizer
-                    V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
+                    """V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
                         frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
-                        roll=0,pitch=0*D2R,yaw=0)
+                        roll=0,pitch=0*D2R,yaw=0)"""
                         # roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
 
-                    V.publish_meshes()
-                    V.publish_lines()
+                    """V.publish_meshes()
+                    V.publish_lines()"""
 
 
             else: # trajectory has ended 
@@ -229,16 +229,15 @@ if __name__ == '__main__':
                                 print("Publishing Data")
 
                         print("3. Waiting")
-                        flag = FlagData.flag
-                        sim_len = SimTraj.length
-                        print("Simulation trajectory length: ", sim_len)
                         print("Start new cycle")
 
                     else:
+                        flag = FlagData.flag
+                        sim_len = SimTraj.length
                         # real trajectory
-                        V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
+                        """V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
                             frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
-                        V.publish_lines()
+                        V.publish_lines()"""
                                    
                 else:
                     if zero_tick == 0:
@@ -268,11 +267,11 @@ if __name__ == '__main__':
                         apriltag_batch.append(apriltag_traj)
                         # rpy_batch.append(rpy_data[:sim_len,:])
                     
-                    else:
+                    """else:
                         # real trajectory
                         V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
                             frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
-                        V.publish_lines()
+                        V.publish_lines()"""
 
         rospy.sleep(1e-8)
 

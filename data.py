@@ -25,7 +25,7 @@ if __name__ == '__main__':
     n_mahony = 10 # number of previous data for mahony filter
     D2R = np.pi/180
     R2D = 180/np.pi
-
+    
     # Create folders
     CURR_FOLDER = os.getcwd()
     tm = localtime(time())
@@ -35,12 +35,15 @@ if __name__ == '__main__':
     os.mkdir(DATA_FOLDER_TIME)
     stl_path = 'file://' + CURR_FOLDER + '/ROS_viz_engine/snapbot_super_low_resol.stl'
 
-    # Camera, IMU variables
+    # IMU variables
+    IMU_USB_NUMBER = 0
+    ser = serial.Serial('/dev/ttyUSB{}'.format(IMU_USB_NUMBER), 115200, timeout=1)
+    IMU_REAL_TIME = True
+    
+    # Camera variables
     REALSENSE_CAMERA_NUMBER = 12
     # EGOCENTRIC_CAMERA_NUMBER = 4
-    # IMU_USB_NUMBER = 0
-    # ser = serial.Serial('/dev/ttyUSB{}'.format(IMU_USB_NUMBER), 115200, timeout=1)
-    
+        
     pipeline = rs.pipeline()
     config = rs.config()
     align_to = rs.stream.color
@@ -93,10 +96,15 @@ if __name__ == '__main__':
 
                     # Variables to calculate and publish
                     xy_yaw_data = np.empty(shape=(0,3))
-                    # rpy_data = np.empty(shape=(0,3))
-                    # acc_data = deque()
-                    # gyro_data = deque()
-                    # yaw_val = 0.0
+                    rpy_data = np.empty(shape=(0,3))
+                    if IMU_REAL_TIME:
+                        acc_data = deque()
+                        gyro_data = deque()
+                        yaw_val = 0.0
+                    else:
+                        acc_data = []
+                        gyro_data = []
+                        yaw_val = 0.0
 
                     # Simulation trajectory
                     sim_data = np.array(SimTraj.traj).reshape((SimTraj.length, SimTraj.height, SimTraj.num))
@@ -159,40 +167,49 @@ if __name__ == '__main__':
 
 
                     # Read IMU data
-                    # line = ser.readline()
-                    # imu_raw_data = line.decode('unicode_escape')
-                    # imu_raw_data = imu_raw_data.split()
-                    # if len(imu_raw_data) == 6:
-                    #     acc_array = [-float(imu_raw_data[1].replace('\x00','')), float(imu_raw_data[0].replace('\x00','')), float(imu_raw_data[2].replace('\x00',''))]
-                    #     gyro_array = [float(imu_raw_data[3].replace('\x00','')), float(imu_raw_data[4].replace('\x00','')), float(imu_raw_data[5].replace('\x00',''))]
-                    # acc_data.append(acc_array)
-                    # gyro_data.append(gyro_array)
+                    line = ser.readline()
+                    imu_raw_data = line.decode('unicode_escape')
+                    imu_raw_data = imu_raw_data.split()
+                    
+                    try:
+                        acc_array = [-float(imu_raw_data[1].replace('\x00','')), float(imu_raw_data[0].replace('\x00','')), float(imu_raw_data[2].replace('\x00',''))]
+                        gyro_array = [float(imu_raw_data[3].replace('\x00','')), float(imu_raw_data[4].replace('\x00','')), float(imu_raw_data[5].replace('\x00',''))]
+                    except:
+                        pass
 
-                    # if len(acc_data) > n_mahony:
-                    #     acc_data.popleft()
-                    # if len(gyro_data) > n_mahony:
-                    #     gyro_data.popleft()
+                    acc_data.append(acc_array)
+                    gyro_data.append(gyro_array)                        
 
                     # Calculate RPY data
-                    # orientation_mahony = Mahony(gyr=list(gyro_data), acc=list(acc_data))
-                    # q_mahony = orientation_mahony.Q[-1,:]
-                    # roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
-                    # yaw_val += yaw_raw
+                    if IMU_REAL_TIME:
+                        if len(acc_data) > n_mahony:
+                            acc_data.popleft()
+                        if len(gyro_data) > n_mahony:
+                            gyro_data.popleft()
 
-                    # roll_data = (np.pi-roll_raw)*R2D # degrees
-                    # pitch_data = -pitch_raw*R2D # degrees
-                    # yaw_data = yaw_val*100/Hz/n_mahony*R2D # degrees
+                        orientation_mahony = Mahony(gyr=list(gyro_data), acc=list(acc_data))
+                        q_mahony = orientation_mahony.Q[-1,:]
+                        roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
+                        yaw_val += yaw_raw
+
+                        roll_data = (np.pi-roll_raw)*R2D # degrees
+                        pitch_data = -pitch_raw*R2D # degrees
+                        yaw_data = yaw_val*100/Hz/n_mahony*R2D # degrees
                    
                     # Append data
                     xy_yaw_data = np.append(xy_yaw_data, np.array([[real_x, real_y, real_yaw]]), axis=0)
-                    # rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
+                    if IMU_REAL_TIME: rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
                     # Visualizer
                     V.delete_meshes()
-                    V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
-                        frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
-                        roll=0,pitch=0*D2R,yaw=0)
-                        # roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
+                    if IMU_REAL_TIME:
+                        V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
+                            frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
+                            roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
+                    else:
+                        V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
+                            frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
+                            roll=0,pitch=0*D2R,yaw=real_yaw)
 
                     V.publish_meshes()
                     V.publish_lines()
@@ -216,7 +233,7 @@ if __name__ == '__main__':
                             # ego_result.release()
 
                             np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
-                            # np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
+                            np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
 
                             # Append batch
                             if xy_yaw_data.shape[0] > desired_len:
@@ -232,16 +249,34 @@ if __name__ == '__main__':
 
                             apriltag_traj = apriltag_traj - [apriltag_traj[0,0], apriltag_traj[0,1], 0]
                             apriltag_batch.append(apriltag_traj)
-                            # rpy_batch.append(rpy_data[:sim_len,:])
-
                             apriltag_batch_ros = rnm.to_multiarray_f32(np.array(apriltag_batch[-n_real:]))
-                            # rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-n_real:]))
+
+                            if not IMU_REAL_TIME:
+                                orientation_mahony = Mahony(gyr=gyro_data, acc=acc_data)
+                                for i in range(len(gyro_data)):
+                                    q_mahony = orientation_mahony.Q[i,:]
+                                    roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
+                                    rpy_data = np.append(rpy_data, np.array([[roll_raw, pitch_raw, yaw_val+yaw_raw]]), axis=0)
+                            
+                            if rpy_data.shape[0] > desired_len:
+                                imu_rpy = rpy_data[:desired_len,:]
+                                print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
+                                print("%d data removed."%(rpy_data.shape[0]-desired_len))
+                            else:
+                                imu_rpy = np.zeros(shape=(desired_len,rpy_data.shape[1]))
+                                imu_rpy[:rpy_data.shape[0],:] = rpy_data
+                                imu_rpy[rpy_data.shape[0]:,:] = rpy_data[-1,:]
+                                print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
+                                print("%d data appended."%(desired_len-rpy_data.shape[0]))
+
+                            rpy_batch.append(imu_rpy)
+                            rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-n_real:]))
                             
                             # Publish apriltag, rpy data
                             answer = str(input("Are you ready to publish data? (y/n): "))
                             while answer.lower() == 'y':
                                 AprilTag.publish_once(apriltag_batch_ros)
-                                # IMURPY.publish_once(rpy_batch_ros)
+                                IMURPY.publish_once(rpy_batch_ros)
                                 answer = str(input("Continue? (y/n): "))
                                 print("Publishing Data")
 
@@ -288,7 +323,28 @@ if __name__ == '__main__':
 
                         apriltag_traj = apriltag_traj - [apriltag_traj[0,0], apriltag_traj[0,1], 0]
                         apriltag_batch.append(apriltag_traj)
-                        # rpy_batch.append(rpy_data[:sim_len,:])
+                        apriltag_batch_ros = rnm.to_multiarray_f32(np.array(apriltag_batch[-n_real:]))
+
+                        if not IMU_REAL_TIME:
+                            orientation_mahony = Mahony(gyr=gyro_data, acc=acc_data)
+                            for i in range(len(gyro_data)):
+                                q_mahony = orientation_mahony.Q[i,:]
+                                roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
+                                rpy_data = np.append(rpy_data, np.array([[roll_raw, pitch_raw, yaw_val+yaw_raw]]), axis=0)
+
+                        if rpy_data.shape[0] > desired_len:
+                            imu_rpy = rpy_data[:desired_len,:]
+                            print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
+                            print("%d data removed."%(rpy_data.shape[0]-desired_len))
+                        else:
+                            imu_rpy = np.zeros(shape=(desired_len,rpy_data.shape[1]))
+                            imu_rpy[:rpy_data.shape[0],:] = rpy_data
+                            imu_rpy[rpy_data.shape[0]:,:] = rpy_data[-1,:]
+                            print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
+                            print("%d data appended."%(desired_len-rpy_data.shape[0]))
+
+                        rpy_batch.append(imu_rpy)
+                        rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-n_real:]))
                     
                     else:
                         # Visualize real trajectory

@@ -68,11 +68,14 @@ if __name__ == "__main__":
 
 
     rospy.init_node(name='subscriber', anonymous=True)    
-    FlagData = FlagDataSubscriber()
-    SimTraj  = SimTrajSubscriber()
-    tick     = 0
-    timer = Timer(HZ=1, MAX_SEC=100)
-    timer.start()
-    while timer.is_notfinished():
-        if timer.do_run():
-            print(FlagData.flag)
+    # FlagData = FlagDataSubscriber()
+    # SimTraj  = SimTrajSubscriber()
+    # tick     = 0
+    # timer = Timer(HZ=1, MAX_SEC=100)
+    # timer.start()
+    # while timer.is_notfinished():
+    #     if timer.do_run():
+    #         print(FlagData.flag)
+
+    apriltag = AprilTagSubscriber()
+    print(apriltag.length)

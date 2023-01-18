@@ -71,16 +71,25 @@ class SimTrajPublisher():
        
 if __name__ == "__main__":
     rospy.init_node('publisher', anonymous=True)
-    test_traj = rnm.to_multiarray_f32(np.array([[[1,2,3],[4,5,6],[7,8,9]]]).reshape(3,3,1))
+    # test_traj = rnm.to_multiarray_f32(np.array([[[1,2,3],[4,5,6],[7,8,9]]]).reshape(3,3,1))
     Flag = FlagDataPublisher()
     SimTraj = SimTrajPublisher()
-    while not rospy.is_shutdown():
-        rospy.Rate(17)
-        SimTraj.publish_once(test_traj)
-        Flag.publish_once(1)
-        Flag.publish_once(2)
-        Flag.publish_once(3)
-        Flag.publish_once(4)
-        Flag.publish_once(5)
-        Flag.publish_once(6)
-        Flag.publish_once(7)        
+    # while not rospy.is_shutdown():
+    #     rospy.Rate(17)
+    #     SimTraj.publish_once(test_traj)
+    #     Flag.publish_once(1)
+    #     Flag.publish_once(2)
+    #     Flag.publish_once(3)
+    #     Flag.publish_once(4)
+    #     Flag.publish_once(5)
+    #     Flag.publish_once(6)
+    #     Flag.publish_once(7)
+
+    sim_traj = rnm.to_multiarray_f32(np.ones(shape=(2,300,3)))
+
+    # SimTraj.publish_once(sim_traj)
+    # Flag.publish_once(1)
+
+    Flag.publish_once(0)
+
+    

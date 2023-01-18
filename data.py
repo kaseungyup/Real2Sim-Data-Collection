@@ -26,16 +26,21 @@ if __name__ == '__main__':
     D2R = np.pi/180
     R2D = 180/np.pi
 
+    # Create folders
     CURR_FOLDER = os.getcwd()
+    tm = localtime(time())
     DATA_FOLDER = os.path.join(CURR_FOLDER , "data")
     if not os.path.isdir(DATA_FOLDER): os.mkdir(DATA_FOLDER)
+    DATA_FOLDER_TIME = os.path.join(CURR_FOLDER , "data", "%d%02d%02d-%02d:%02d:%02d"%(tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec))
+    os.mkdir(DATA_FOLDER_TIME)
     stl_path = 'file://' + CURR_FOLDER + '/ROS_viz_engine/snapbot_super_low_resol.stl'
 
+    # Camera, IMU variables
     REALSENSE_CAMERA_NUMBER = 12
     # EGOCENTRIC_CAMERA_NUMBER = 4
     # IMU_USB_NUMBER = 0
     # ser = serial.Serial('/dev/ttyUSB{}'.format(IMU_USB_NUMBER), 115200, timeout=1)
-    """
+    
     pipeline = rs.pipeline()
     config = rs.config()
     align_to = rs.stream.color
@@ -43,30 +48,34 @@ if __name__ == '__main__':
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
     pipeline.start(config)
-
     tps_coef = get_tps_mat(pipeline, align)
-    """
+    
+    # ROS, RViz initialization
     rospy.init_node('subscriber', anonymous=True)
     print("1. Start visualization_engine.")
     V = VisualizerClass(name='simple viz',HZ=Hz)
 
+    # Publisher, Subscriber initializatoin
     FlagData = FlagDataSubscriber()
     SimTraj  = SimTrajSubscriber()
     AprilTag = AprilTagPublisher()
     IMURPY   = IMURPYPublisher()
 
+    # Loop variables
     zero_tick = 0
     one_tick = 0
     epoch = 0
-    max_epoch = 2
+    n_real = 2
 
+    # Apriltag, IMU data
     apriltag_batch = []
     prev_real_x, prev_real_y, prev_real_yaw = 0,0,0
+    
     rpy_batch = []
-
     acc_array = [0,0,0]
     gyro_array = [0,0,0]
 
+    # Timer initialization
     tmr = Timer(_name='Plot',_HZ=Hz,_MAX_SEC=np.inf,_VERBOSE=True)
     tmr.start()
     print("2. Start Timer")
@@ -82,25 +91,27 @@ if __name__ == '__main__':
                     V.reset_lines()
                     V.reset_meshes()
 
-                    # variables to calculate and publish
+                    # Variables to calculate and publish
                     xy_yaw_data = np.empty(shape=(0,3))
                     # rpy_data = np.empty(shape=(0,3))
                     # acc_data = deque()
                     # gyro_data = deque()
                     # yaw_val = 0.0
 
-                    # simulation trajectory
+                    # Simulation trajectory
                     sim_data = np.array(SimTraj.traj).reshape((SimTraj.length, SimTraj.height, SimTraj.num))
-                    curr_traj = sim_data[epoch%max_epoch,:,:]
+                    curr_traj = sim_data[epoch%n_real,:,:]
                     print(curr_traj.shape)
-                    """
+                    
                     V.append_line(x_array=curr_traj[:,0],y_array=curr_traj[:,1],z=0.0,r=0.01,
                         frame_id='map',color=ColorRGBA(1.0,0.0,0.0,1.0),marker_type=Marker.LINE_STRIP)
-                    """
+                    
                     print("4. Simulation data published")
 
-                    DATA_FOLDER_EPOCH = os.path.join(DATA_FOLDER_TIME, "Epoch %d"%(epoch%max_epoch))
-                    os.mkdir(DATA_FOLDER_EPOCH)
+                    # create folder
+                    tm = localtime(time())
+                    DATA_FOLDER_CURRENT = os.path.join(DATA_FOLDER_TRIAL, "%d. %d%02d%02d-%02d:%02d:%02d"%((epoch%n_real),tm.tm_year,tm.tm_mon,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec))
+                    os.mkdir(DATA_FOLDER_CURRENT)
 
                     # RS_CAMERA_FOLDER = os.path.join(DATA_FOLDER_EPOCH, "realsense_camera")
                     # EGO_CAMERA_FOLDER = os.path.join(DATA_FOLDER_EPOCH, "egocentric_camera")
@@ -141,7 +152,7 @@ if __name__ == '__main__':
 
                     # Calculate real x, y
                     try:
-                        """real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef, pipeline)"""
+                        real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef, pipeline)
                         prev_real_x, prev_real_y, prev_real_yaw = real_x, real_y, real_yaw
                     except:
                         real_x, real_y, real_yaw = prev_real_x, prev_real_y, prev_real_yaw
@@ -177,24 +188,25 @@ if __name__ == '__main__':
                     # rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
                     # Visualizer
-                    """V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
+                    V.delete_meshes()
+                    V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
                         frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
-                        roll=0,pitch=0*D2R,yaw=0)"""
+                        roll=0,pitch=0*D2R,yaw=0)
                         # roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
 
-                    """V.publish_meshes()
-                    V.publish_lines()"""
+                    V.publish_meshes()
+                    V.publish_lines()
 
 
             else: # trajectory has ended 
-                if epoch%max_epoch == 0: # start/end of each cycle
+                if epoch%n_real == 0: # start/end of each cycle
                     if zero_tick == 0:
                         one_tick = 0
                         zero_tick += 1
 
                         tm = localtime(time())
-                        DATA_FOLDER_TIME = os.path.join(DATA_FOLDER, "%d%02d%02d-%02d:%02d:%02d" % (tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec))
-                        if not os.path.isdir(DATA_FOLDER_TIME): os.mkdir(DATA_FOLDER_TIME)
+                        DATA_FOLDER_TRIAL = os.path.join(DATA_FOLDER_TIME, "Trial %d"%(int(np.floor(epoch/n_real))))
+                        os.mkdir(DATA_FOLDER_TRIAL)
 
                         if epoch != 0: # end of current cycle
                             # save videos and variables
@@ -203,28 +215,33 @@ if __name__ == '__main__':
                             # ego_video.stop()
                             # ego_result.release()
 
-                            np.save(os.path.join(DATA_FOLDER_EPOCH, "xy_yaw.npy"), xy_yaw_data)
-                            # np.save(os.path.join(DATA_FOLDER_EPOCH, "rpy.npy"), rpy_data)
+                            np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
+                            # np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
 
                             # Append batch
                             if xy_yaw_data.shape[0] > desired_len:
                                 apriltag_traj = xy_yaw_data[:desired_len,:]
+                                print("Wrong apriltag trajectory length. Desired: %d, Actual: %d"%(desired_len,xy_yaw_data.shape[0]))
+                                print("%d data removed."%(xy_yaw_data.shape[0]-desired_len))
                             else:
                                 apriltag_traj = np.zeros(shape=(desired_len,xy_yaw_data.shape[1]))
                                 apriltag_traj[:xy_yaw_data.shape[0],:] = xy_yaw_data
                                 apriltag_traj[xy_yaw_data.shape[0]:,:] = xy_yaw_data[-1,:]
+                                print("Wrong apriltag trajectory length. Desired: %d, Actual: %d"%(desired_len,xy_yaw_data.shape[0]))
+                                print("%d data appended."%(desired_len-xy_yaw_data.shape[0]))
 
                             apriltag_traj = apriltag_traj - [apriltag_traj[0,0], apriltag_traj[0,1], 0]
                             apriltag_batch.append(apriltag_traj)
                             # rpy_batch.append(rpy_data[:sim_len,:])
 
-                            apriltag_batch_ros = rnm.to_multiarray_f32(np.array(apriltag_batch[-max_epoch:]))
-                            # rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-max_epoch:]))
+                            apriltag_batch_ros = rnm.to_multiarray_f32(np.array(apriltag_batch[-n_real:]))
+                            # rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-n_real:]))
                             
+                            # Publish apriltag, rpy data
                             answer = str(input("Are you ready to publish data? (y/n): "))
                             while answer.lower() == 'y':
                                 AprilTag.publish_once(apriltag_batch_ros)
-                                # rpy_publisher(rpy_batch_ros)
+                                # IMURPY.publish_once(rpy_batch_ros)
                                 answer = str(input("Continue? (y/n): "))
                                 print("Publishing Data")
 
@@ -234,17 +251,19 @@ if __name__ == '__main__':
                     else:
                         flag = FlagData.flag
                         sim_len = SimTraj.length
-                        # real trajectory
-                        """V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
-                            frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
-                        V.publish_lines()"""
+                        
+                        if epoch != 0:
+                            # Visualize real trajectory
+                            V.append_line(x_array=apriltag_traj[:,0]-apriltag_traj[0,0],y_array=apriltag_traj[:,1]-apriltag_traj[0,1],z=0.0,r=0.01,
+                                frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
+                            V.publish_lines()
                                    
-                else:
+                else: # Waiting for next round
                     if zero_tick == 0:
                         one_tick = 0
                         zero_tick += 1
                         print("3. Waiting")
-                        print("epoch: ", epoch%max_epoch)
+                        print("Number: ", epoch%n_real)
 
                         # save videos and variables
                         # rs_video.stop()
@@ -252,26 +271,30 @@ if __name__ == '__main__':
                         # ego_video.stop()
                         # ego_result.release()
 
-                        np.save(os.path.join(DATA_FOLDER_EPOCH, "xy_yaw.npy"), xy_yaw_data)
-                        # np.save(os.path.join(DATA_FOLDER_EPOCH, "rpy.npy"), rpy_data)
+                        np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
+                        # np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
 
-                        # Append batch
+                        # Append batch                      
                         if xy_yaw_data.shape[0] > desired_len:
                             apriltag_traj = xy_yaw_data[:desired_len,:]
+                            print("Wrong apriltag trajectory length. Desired: %d, Actual: %d"%(desired_len,xy_yaw_data.shape[0]))
+                            print("%d data removed."%(xy_yaw_data.shape[0]-desired_len))
                         else:
                             apriltag_traj = np.zeros(shape=(desired_len,xy_yaw_data.shape[1]))
                             apriltag_traj[:xy_yaw_data.shape[0],:] = xy_yaw_data
                             apriltag_traj[xy_yaw_data.shape[0]:,:] = xy_yaw_data[-1,:]
+                            print("Wrong apriltag trajectory length. Desired: %d, Actual: %d"%(desired_len,xy_yaw_data.shape[0]))
+                            print("%d data appended."%(desired_len-xy_yaw_data.shape[0]))
 
                         apriltag_traj = apriltag_traj - [apriltag_traj[0,0], apriltag_traj[0,1], 0]
                         apriltag_batch.append(apriltag_traj)
                         # rpy_batch.append(rpy_data[:sim_len,:])
                     
-                    """else:
-                        # real trajectory
+                    else:
+                        # Visualize real trajectory
                         V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
                             frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
-                        V.publish_lines()"""
+                        V.publish_lines()
 
         rospy.sleep(1e-8)
 

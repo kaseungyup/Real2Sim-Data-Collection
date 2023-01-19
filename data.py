@@ -209,7 +209,7 @@ if __name__ == '__main__':
                     else:
                         V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
                             frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
-                            roll=0,pitch=0*D2R,yaw=real_yaw)
+                            roll=0,pitch=0,yaw=real_yaw)
 
                     V.publish_meshes()
                     V.publish_lines()
@@ -221,7 +221,6 @@ if __name__ == '__main__':
                         one_tick = 0
                         zero_tick += 1
 
-                        tm = localtime(time())
                         DATA_FOLDER_TRIAL = os.path.join(DATA_FOLDER_TIME, "Trial %d"%(int(np.floor(epoch/n_real))))
                         os.mkdir(DATA_FOLDER_TRIAL)
 
@@ -307,7 +306,7 @@ if __name__ == '__main__':
                         # ego_result.release()
 
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
-                        # np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
+                        np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
 
                         # Append batch                      
                         if xy_yaw_data.shape[0] > desired_len:
@@ -330,6 +329,7 @@ if __name__ == '__main__':
                             for i in range(len(gyro_data)):
                                 q_mahony = orientation_mahony.Q[i,:]
                                 roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
+                                yaw_val = yaw_val + yaw_raw
                                 rpy_data = np.append(rpy_data, np.array([[roll_raw, pitch_raw, yaw_val+yaw_raw]]), axis=0)
 
                         if rpy_data.shape[0] > desired_len:

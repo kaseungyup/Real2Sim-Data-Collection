@@ -216,109 +216,32 @@ if __name__ == '__main__':
 
 
             else: # trajectory has ended 
-                if epoch%n_real == 0: # start/end of each cycle
-                    if zero_tick == 0:
-                        one_tick = 0
-                        zero_tick += 1
-
-                        DATA_FOLDER_TRIAL = os.path.join(DATA_FOLDER_TIME, "Trial %d"%(int(np.floor(epoch/n_real))))
-                        os.mkdir(DATA_FOLDER_TRIAL)
-
-                        if epoch != 0: # end of current cycle
-                            # save videos and variables
-                            # rs_video.stop()
-                            # rs_result.release()
-                            # ego_video.stop()
-                            # ego_result.release()
-
-                            np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
-                            np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
-
-                            # Append batch
-                            if xy_yaw_data.shape[0] > desired_len:
-                                apriltag_traj = xy_yaw_data[:desired_len,:]
-                                print("Wrong apriltag trajectory length. Desired: %d, Actual: %d"%(desired_len,xy_yaw_data.shape[0]))
-                                print("%d data removed."%(xy_yaw_data.shape[0]-desired_len))
-                            else:
-                                apriltag_traj = np.zeros(shape=(desired_len,xy_yaw_data.shape[1]))
-                                apriltag_traj[:xy_yaw_data.shape[0],:] = xy_yaw_data
-                                apriltag_traj[xy_yaw_data.shape[0]:,:] = xy_yaw_data[-1,:]
-                                print("Wrong apriltag trajectory length. Desired: %d, Actual: %d"%(desired_len,xy_yaw_data.shape[0]))
-                                print("%d data appended."%(desired_len-xy_yaw_data.shape[0]))
-
-                            apriltag_traj = apriltag_traj - [apriltag_traj[0,0], apriltag_traj[0,1], 0]
-                            apriltag_batch.append(apriltag_traj)
-                            apriltag_batch_ros = rnm.to_multiarray_f32(np.array(apriltag_batch[-n_real:]))
-
-                            if not IMU_REAL_TIME:
-                                orientation_mahony = Mahony(gyr=gyro_data, acc=acc_data)
-                                for i in range(len(gyro_data)):
-                                    q_mahony = orientation_mahony.Q[i,:]
-                                    roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
-                                    rpy_data = np.append(rpy_data, np.array([[roll_raw, pitch_raw, yaw_val+yaw_raw]]), axis=0)
-                            
-                            if rpy_data.shape[0] > desired_len:
-                                imu_rpy = rpy_data[:desired_len,:]
-                                print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
-                                print("%d data removed."%(rpy_data.shape[0]-desired_len))
-                            else:
-                                imu_rpy = np.zeros(shape=(desired_len,rpy_data.shape[1]))
-                                imu_rpy[:rpy_data.shape[0],:] = rpy_data
-                                imu_rpy[rpy_data.shape[0]:,:] = rpy_data[-1,:]
-                                print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
-                                print("%d data appended."%(desired_len-rpy_data.shape[0]))
-
-                            rpy_batch.append(imu_rpy)
-                            rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-n_real:]))
-                            
-                            # Publish apriltag, rpy data
-                            answer = str(input("Are you ready to publish data? (y/n): "))
-                            while answer.lower() == 'y':
-                                AprilTag.publish_once(apriltag_batch_ros)
-                                IMURPY.publish_once(rpy_batch_ros)
-                                answer = str(input("Continue? (y/n): "))
-                                print("Publishing Data")
-
-                        print("3. Waiting")
-                        print("Start new cycle")
-
-                    else:
-                        flag = FlagData.flag
-                        sim_len = SimTraj.length
-                        
-                        if epoch != 0:
-                            # Visualize real trajectory
-                            V.append_line(x_array=apriltag_traj[:,0]-apriltag_traj[0,0],y_array=apriltag_traj[:,1]-apriltag_traj[0,1],z=0.0,r=0.01,
-                                frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
-                            V.publish_lines()
-                                   
-                else: # Waiting for next round
-                    if zero_tick == 0:
-                        one_tick = 0
-                        zero_tick += 1
-                        print("3. Waiting")
-                        print("Number: ", epoch%n_real)
-
-                        # save videos and variables
+                if zero_tick == 0:
+                    if epoch != 0:
+                        # Save videos and variables
                         # rs_video.stop()
                         # rs_result.release()
                         # ego_video.stop()
                         # ego_result.release()
 
+                        # Save apriltag data as .npy file
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
 
-                        # Append batch                      
+                        # Append data batch
                         if xy_yaw_data.shape[0] > desired_len:
                             apriltag_traj = xy_yaw_data[:desired_len,:]
                             print("Wrong apriltag trajectory length. Desired: %d, Actual: %d"%(desired_len,xy_yaw_data.shape[0]))
                             print("%d data removed."%(xy_yaw_data.shape[0]-desired_len))
-                        else:
+                        elif xy_yaw_data.shape[0] < desired_len:
                             apriltag_traj = np.zeros(shape=(desired_len,xy_yaw_data.shape[1]))
                             apriltag_traj[:xy_yaw_data.shape[0],:] = xy_yaw_data
                             apriltag_traj[xy_yaw_data.shape[0]:,:] = xy_yaw_data[-1,:]
                             print("Wrong apriltag trajectory length. Desired: %d, Actual: %d"%(desired_len,xy_yaw_data.shape[0]))
                             print("%d data appended."%(desired_len-xy_yaw_data.shape[0]))
+                        else:
+                            print("Desired apriltag trajectory length achieved.")
+                            apriltag_traj = xy_yaw_data
 
                         apriltag_traj = apriltag_traj - [apriltag_traj[0,0], apriltag_traj[0,1], 0]
                         apriltag_batch.append(apriltag_traj)
@@ -329,28 +252,74 @@ if __name__ == '__main__':
                             for i in range(len(gyro_data)):
                                 q_mahony = orientation_mahony.Q[i,:]
                                 roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
-                                yaw_val = yaw_val + yaw_raw
                                 rpy_data = np.append(rpy_data, np.array([[roll_raw, pitch_raw, yaw_val+yaw_raw]]), axis=0)
-
+                        
                         if rpy_data.shape[0] > desired_len:
                             imu_rpy = rpy_data[:desired_len,:]
                             print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
                             print("%d data removed."%(rpy_data.shape[0]-desired_len))
-                        else:
+                        elif rpy_data.shape[0] < desired_len:
                             imu_rpy = np.zeros(shape=(desired_len,rpy_data.shape[1]))
                             imu_rpy[:rpy_data.shape[0],:] = rpy_data
                             imu_rpy[rpy_data.shape[0]:,:] = rpy_data[-1,:]
                             print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
                             print("%d data appended."%(desired_len-rpy_data.shape[0]))
+                        else:
+                            print("Desired IMU rpy length achieved.")
+                            imu_rpy = rpy_data
 
                         rpy_batch.append(imu_rpy)
                         rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-n_real:]))
-                    
+
+                    # variables to calculate and publish
+                    xy_yaw_data = np.empty(shape=(0,3))
+                    rpy_data = np.empty(shape=(0,3))
+                    if IMU_REAL_TIME:
+                        acc_data = deque()
+                        gyro_data = deque()
+                        yaw_val = 0.0
                     else:
+                        acc_data = []
+                        gyro_data = []
+                        yaw_val = 0.0
+
+                else:
+                    if epoch != 0:
                         # Visualize real trajectory
                         V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
                             frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
                         V.publish_lines()
+
+                if epoch%n_real == 0: # start/end of each trial
+                    if zero_tick == 0:
+                        if epoch != 0: # end of current trial            
+                            # Publish apriltag data to SPC
+                            answer = str(input("Are you ready to publish data? (y/n): "))
+                            while answer.lower() == 'y':
+                                AprilTag.publish_once(apriltag_batch_ros)
+                                IMURPY.publish_once(rpy_batch_ros)
+                                answer = str(input("Continue? (y/n): "))
+                                print("Publishing Data")
+
+                        print("3. Waiting")
+                        print("Start new cycle")
+
+                        # Create folders
+                        DATA_FOLDER_TRIAL = os.path.join(DATA_FOLDER_TIME, "Trial %d"%(int(np.floor(epoch/n_real))))
+                        os.mkdir(DATA_FOLDER_TRIAL)
+
+                    else:
+                        # Subscribe flag/trajectory from SPC
+                        flag = FlagData.flag
+                        sim_len = SimTraj.length
+                                    
+                else: # Waiting for next round
+                    if zero_tick == 0:
+                        print("3. Waiting")
+                        print("Number: ", epoch%n_real)
+
+                one_tick = 0
+                zero_tick += 1
 
         rospy.sleep(1e-8)
 

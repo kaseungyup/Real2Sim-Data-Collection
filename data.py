@@ -36,12 +36,12 @@ if __name__ == '__main__':
     stl_path = 'file://' + CURR_FOLDER + '/ROS_viz_engine/snapbot_super_low_resol.stl'
 
     # IMU variables
-    IMU_USB_NUMBER = 0
-    ser = serial.Serial('/dev/ttyUSB{}'.format(IMU_USB_NUMBER), 115200, timeout=1)
-    IMU_REAL_TIME = True
+    # IMU_USB_NUMBER = 0
+    # ser = serial.Serial('/dev/ttyUSB{}'.format(IMU_USB_NUMBER), 115200, timeout=1)
+    # IMU_REAL_TIME = False
     
     # Camera variables
-    REALSENSE_CAMERA_NUMBER = 12
+    REALSENSE_CAMERA_NUMBER = 14
     # EGOCENTRIC_CAMERA_NUMBER = 4
         
     pipeline = rs.pipeline()
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     FlagData = FlagDataSubscriber()
     SimTraj  = SimTrajSubscriber()
     AprilTag = AprilTagPublisher()
-    IMURPY   = IMURPYPublisher()
+    # IMURPY   = IMURPYPublisher()
 
     # Loop variables
     zero_tick = 0
@@ -74,9 +74,9 @@ if __name__ == '__main__':
     apriltag_batch = []
     prev_real_x, prev_real_y, prev_real_yaw = 0,0,0
     
-    rpy_batch = []
-    acc_array = [0,0,0]
-    gyro_array = [0,0,0]
+    # rpy_batch = []
+    # acc_array = [0,0,0]
+    # gyro_array = [0,0,0]
 
     # Timer initialization
     tmr = Timer(_name='Plot',_HZ=Hz,_MAX_SEC=np.inf,_VERBOSE=True)
@@ -88,23 +88,10 @@ if __name__ == '__main__':
             if FlagData.flag: # new trajectory starts
                 if one_tick == 0: # reset variables and initialize
                     zero_tick = 0
-                    one_tick += 1
 
                     # Visualizer
                     V.reset_lines()
                     V.reset_meshes()
-
-                    # Variables to calculate and publish
-                    xy_yaw_data = np.empty(shape=(0,3))
-                    rpy_data = np.empty(shape=(0,3))
-                    if IMU_REAL_TIME:
-                        acc_data = deque()
-                        gyro_data = deque()
-                        yaw_val = 0.0
-                    else:
-                        acc_data = []
-                        gyro_data = []
-                        yaw_val = 0.0
 
                     # Simulation trajectory
                     sim_data = np.array(SimTraj.traj).reshape((SimTraj.length, SimTraj.height, SimTraj.num))
@@ -121,18 +108,18 @@ if __name__ == '__main__':
                     DATA_FOLDER_CURRENT = os.path.join(DATA_FOLDER_TRIAL, "%d. %d%02d%02d-%02d:%02d:%02d"%((epoch%n_real),tm.tm_year,tm.tm_mon,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec))
                     os.mkdir(DATA_FOLDER_CURRENT)
 
-                    # RS_CAMERA_FOLDER = os.path.join(DATA_FOLDER_EPOCH, "realsense_camera")
-                    # EGO_CAMERA_FOLDER = os.path.join(DATA_FOLDER_EPOCH, "egocentric_camera")
-                    # os.mkdir(RS_CAMERA_FOLDER)
+                    RS_CAMERA_FOLDER = os.path.join(DATA_FOLDER_CURRENT, "realsense_camera")
+                    # EGO_CAMERA_FOLDER = os.path.join(DATA_FOLDER_CURRENT, "egocentric_camera")
+                    os.mkdir(RS_CAMERA_FOLDER)
                     # os.mkdir(EGO_CAMERA_FOLDER)
 
                     # manage video data
-                    # rs_video = WebcamVideoStream(src=REALSENSE_CAMERA_NUMBER).start()
-                    # rs_frame_width = 640
-                    # rs_frame_height = 480
-                    # rs_size = (rs_frame_width, rs_frame_height)
-                    # rs_result = cv2.VideoWriter(os.path.join(RS_CAMERA_FOLDER, "rs.mp4"),
-                    #             cv2.VideoWriter_fourcc('m','p','4','v'), Hz, rs_size)
+                    rs_video = WebcamVideoStream(src=REALSENSE_CAMERA_NUMBER).start()
+                    rs_frame_width = 640
+                    rs_frame_height = 480
+                    rs_size = (rs_frame_width, rs_frame_height)
+                    rs_result = cv2.VideoWriter(os.path.join(RS_CAMERA_FOLDER, "rs.mp4"),
+                                cv2.VideoWriter_fourcc('m','p','4','v'), Hz, rs_size)
 
                     # ego_video = WebcamVideoStream(src=EGOCENTRIC_CAMERA_NUMBER).start()
                     # ego_frame_width = 640
@@ -146,87 +133,86 @@ if __name__ == '__main__':
                     # Check epoch
                     epoch += 1
 
-                else: # while trajectory is running
-                    one_tick += 1
+                # Realsense camera video
+                rs_frame = rs_video.frame
+                rs_result.write(rs_frame)
 
-                    # Realsense camera video
-                    # rs_frame = rs_video.frame
-                    # rs_result.write(rs_frame)
+                # Egocentric camera video
+                # ego_frame = ego_video.frame
+                # ego_frame_flip = cv2.flip(ego_frame, -1)
+                # ego_result.write(ego_frame_flip)
 
-                    # Egocentric camera video
-                    # ego_frame = ego_video.frame
-                    # ego_frame_flip = cv2.flip(ego_frame, -1)
-                    # ego_result.write(ego_frame_flip)
-
-                    # Calculate real x, y
-                    try:
-                        real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef, pipeline)
-                        prev_real_x, prev_real_y, prev_real_yaw = real_x, real_y, real_yaw
-                    except:
-                        real_x, real_y, real_yaw = prev_real_x, prev_real_y, prev_real_yaw
+                # Calculate real x, y
+                try:
+                    real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef, pipeline)
+                    prev_real_x, prev_real_y, prev_real_yaw = real_x, real_y, real_yaw
+                except:
+                    real_x, real_y, real_yaw = prev_real_x, prev_real_y, prev_real_yaw
 
 
-                    # Read IMU data
-                    line = ser.readline()
-                    imu_raw_data = line.decode('unicode_escape')
-                    imu_raw_data = imu_raw_data.split()
-                    
-                    try:
-                        acc_array = [-float(imu_raw_data[1].replace('\x00','')), float(imu_raw_data[0].replace('\x00','')), float(imu_raw_data[2].replace('\x00',''))]
-                        gyro_array = [float(imu_raw_data[3].replace('\x00','')), float(imu_raw_data[4].replace('\x00','')), float(imu_raw_data[5].replace('\x00',''))]
-                    except:
-                        pass
+                # # Read IMU data
+                # line = ser.readline()
+                # imu_raw_data = line.decode('unicode_escape')
+                # imu_raw_data = imu_raw_data.split()
+                
+                # try:
+                #     acc_array = [-float(imu_raw_data[1].replace('\x00','')), float(imu_raw_data[0].replace('\x00','')), float(imu_raw_data[2].replace('\x00',''))]
+                #     gyro_array = [float(imu_raw_data[3].replace('\x00','')), float(imu_raw_data[4].replace('\x00','')), float(imu_raw_data[5].replace('\x00',''))]
+                # except:
+                #     pass
 
-                    acc_data.append(acc_array)
-                    gyro_data.append(gyro_array)                        
+                # acc_data.append(acc_array)
+                # gyro_data.append(gyro_array)                        
 
-                    # Calculate RPY data
-                    if IMU_REAL_TIME:
-                        if len(acc_data) > n_mahony:
-                            acc_data.popleft()
-                        if len(gyro_data) > n_mahony:
-                            gyro_data.popleft()
+                # # Calculate RPY data
+                # if IMU_REAL_TIME:
+                #     if len(acc_data) > n_mahony:
+                #         acc_data.popleft()
+                #     if len(gyro_data) > n_mahony:
+                #         gyro_data.popleft()
 
-                        orientation_mahony = Mahony(gyr=list(gyro_data), acc=list(acc_data))
-                        q_mahony = orientation_mahony.Q[-1,:]
-                        roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
-                        yaw_val += yaw_raw
+                #     orientation_mahony = Mahony(gyr=list(gyro_data), acc=list(acc_data))
+                #     q_mahony = orientation_mahony.Q[-1,:]
+                #     roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
+                #     yaw_val += yaw_raw
 
-                        roll_data = (np.pi-roll_raw)*R2D # degrees
-                        pitch_data = -pitch_raw*R2D # degrees
-                        yaw_data = yaw_val*100/Hz/n_mahony*R2D # degrees
-                   
-                    # Append data
-                    xy_yaw_data = np.append(xy_yaw_data, np.array([[real_x, real_y, real_yaw]]), axis=0)
-                    if IMU_REAL_TIME: rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
+                #     roll_data = (np.pi-roll_raw)*R2D # degrees
+                #     pitch_data = -pitch_raw*R2D # degrees
+                #     yaw_data = yaw_val*100/Hz/n_mahony*R2D # degrees
+                
+                # Append data
+                xy_yaw_data = np.append(xy_yaw_data, np.array([[real_x, real_y, real_yaw]]), axis=0)
+                # if IMU_REAL_TIME: rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
 
-                    # Visualizer
-                    V.delete_meshes()
-                    if IMU_REAL_TIME:
-                        V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
-                            frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
-                            roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
-                    else:
-                        V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
-                            frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
-                            roll=0,pitch=0,yaw=real_yaw)
+                # Visualizer
+                V.delete_meshes()
+                # if IMU_REAL_TIME:
+                    # V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
+                    #     frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
+                    #     roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
+                # else:
+                V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
+                    frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
+                    roll=0,pitch=0,yaw=real_yaw)
 
-                    V.publish_meshes()
-                    V.publish_lines()
+                V.publish_meshes()
+                V.publish_lines()
+
+                one_tick += 1
 
 
             else: # trajectory has ended 
                 if zero_tick == 0:
                     if epoch != 0:
                         # Save videos and variables
-                        # rs_video.stop()
-                        # rs_result.release()
+                        rs_video.stop()
+                        rs_result.release()
                         # ego_video.stop()
                         # ego_result.release()
 
                         # Save apriltag data as .npy file
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
-                        np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
+                        # np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
 
                         # Append data batch
                         if xy_yaw_data.shape[0] > desired_len:
@@ -247,41 +233,41 @@ if __name__ == '__main__':
                         apriltag_batch.append(apriltag_traj)
                         apriltag_batch_ros = rnm.to_multiarray_f32(np.array(apriltag_batch[-n_real:]))
 
-                        if not IMU_REAL_TIME:
-                            orientation_mahony = Mahony(gyr=gyro_data, acc=acc_data)
-                            for i in range(len(gyro_data)):
-                                q_mahony = orientation_mahony.Q[i,:]
-                                roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
-                                rpy_data = np.append(rpy_data, np.array([[roll_raw, pitch_raw, yaw_val+yaw_raw]]), axis=0)
+                        # if not IMU_REAL_TIME:
+                        #     orientation_mahony = Mahony(gyr=gyro_data, acc=acc_data)
+                        #     for i in range(len(gyro_data)):
+                        #         q_mahony = orientation_mahony.Q[i,:]
+                        #         roll_raw, pitch_raw, yaw_raw = quaternion_to_vector(q_mahony[0],q_mahony[1],q_mahony[2],q_mahony[3])
+                        #         rpy_data = np.append(rpy_data, np.array([[roll_raw, pitch_raw, yaw_val+yaw_raw]]), axis=0)
                         
-                        if rpy_data.shape[0] > desired_len:
-                            imu_rpy = rpy_data[:desired_len,:]
-                            print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
-                            print("%d data removed."%(rpy_data.shape[0]-desired_len))
-                        elif rpy_data.shape[0] < desired_len:
-                            imu_rpy = np.zeros(shape=(desired_len,rpy_data.shape[1]))
-                            imu_rpy[:rpy_data.shape[0],:] = rpy_data
-                            imu_rpy[rpy_data.shape[0]:,:] = rpy_data[-1,:]
-                            print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
-                            print("%d data appended."%(desired_len-rpy_data.shape[0]))
-                        else:
-                            print("Desired IMU rpy length achieved.")
-                            imu_rpy = rpy_data
+                        # if rpy_data.shape[0] > desired_len:
+                        #     imu_rpy = rpy_data[:desired_len,:]
+                        #     print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
+                        #     print("%d data removed."%(rpy_data.shape[0]-desired_len))
+                        # elif rpy_data.shape[0] < desired_len:
+                        #     imu_rpy = np.zeros(shape=(desired_len,rpy_data.shape[1]))
+                        #     imu_rpy[:rpy_data.shape[0],:] = rpy_data
+                        #     imu_rpy[rpy_data.shape[0]:,:] = rpy_data[-1,:]
+                        #     print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
+                        #     print("%d data appended."%(desired_len-rpy_data.shape[0]))
+                        # else:
+                        #     print("Desired IMU rpy length achieved.")
+                        #     imu_rpy = rpy_data
 
-                        rpy_batch.append(imu_rpy)
-                        rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-n_real:]))
+                        # rpy_batch.append(imu_rpy)
+                        # rpy_batch_ros = rnm.to_multiarray_f32(np.array(rpy_batch[-n_real:]))
 
                     # variables to calculate and publish
                     xy_yaw_data = np.empty(shape=(0,3))
-                    rpy_data = np.empty(shape=(0,3))
-                    if IMU_REAL_TIME:
-                        acc_data = deque()
-                        gyro_data = deque()
-                        yaw_val = 0.0
-                    else:
-                        acc_data = []
-                        gyro_data = []
-                        yaw_val = 0.0
+                    # rpy_data = np.empty(shape=(0,3))
+                    # if IMU_REAL_TIME:
+                    #     acc_data = deque()
+                    #     gyro_data = deque()
+                    #     yaw_val = 0.0
+                    # else:
+                    #     acc_data = []
+                    #     gyro_data = []
+                    #     yaw_val = 0.0
 
                 else:
                     if epoch != 0:
@@ -297,7 +283,7 @@ if __name__ == '__main__':
                             answer = str(input("Are you ready to publish data? (y/n): "))
                             while answer.lower() == 'y':
                                 AprilTag.publish_once(apriltag_batch_ros)
-                                IMURPY.publish_once(rpy_batch_ros)
+                                # IMURPY.publish_once(rpy_batch_ros)
                                 answer = str(input("Continue? (y/n): "))
                                 print("Publishing Data")
 

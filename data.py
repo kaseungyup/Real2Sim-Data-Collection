@@ -1,10 +1,13 @@
+# Save TPS coefficients
+# Save camera data (picture per frame as last resort)
+
 import cv2, os, serial, rospy
 import numpy as np
 import pyrealsense2 as rs
 
 from time import time, localtime
 from collections import deque
-from imutils.video import WebcamVideoStream
+# from imutils.video import WebcamVideoStream
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker
 
@@ -16,7 +19,6 @@ from utils.utils_real import quaternion_to_vector
 from publisher import IMURPYPublisher, AprilTagPublisher
 from subscriber import FlagDataSubscriber, SimTrajSubscriber
 from ros_np_multiarray import ros_np_multiarray as rnm
-
 
 if __name__ == '__main__':
 
@@ -41,7 +43,7 @@ if __name__ == '__main__':
     # IMU_REAL_TIME = False
     
     # Camera variables
-    REALSENSE_CAMERA_NUMBER = 14
+    REALSENSE_CAMERA_NUMBER = 8
     # EGOCENTRIC_CAMERA_NUMBER = 4
         
     pipeline = rs.pipeline()
@@ -108,18 +110,18 @@ if __name__ == '__main__':
                     DATA_FOLDER_CURRENT = os.path.join(DATA_FOLDER_TRIAL, "%d. %d%02d%02d-%02d:%02d:%02d"%((epoch%n_real),tm.tm_year,tm.tm_mon,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec))
                     os.mkdir(DATA_FOLDER_CURRENT)
 
-                    RS_CAMERA_FOLDER = os.path.join(DATA_FOLDER_CURRENT, "realsense_camera")
+                    # RS_CAMERA_FOLDER = os.path.join(DATA_FOLDER_CURRENT, "realsense_camera")
                     # EGO_CAMERA_FOLDER = os.path.join(DATA_FOLDER_CURRENT, "egocentric_camera")
-                    os.mkdir(RS_CAMERA_FOLDER)
+                    # os.mkdir(RS_CAMERA_FOLDER)
                     # os.mkdir(EGO_CAMERA_FOLDER)
 
                     # manage video data
-                    rs_video = WebcamVideoStream(src=REALSENSE_CAMERA_NUMBER).start()
-                    rs_frame_width = 640
-                    rs_frame_height = 480
-                    rs_size = (rs_frame_width, rs_frame_height)
-                    rs_result = cv2.VideoWriter(os.path.join(RS_CAMERA_FOLDER, "rs.mp4"),
-                                cv2.VideoWriter_fourcc('m','p','4','v'), Hz, rs_size)
+                    # rs_video = WebcamVideoStream(src=REALSENSE_CAMERA_NUMBER).start()
+                    # rs_frame_width = 640
+                    # rs_frame_height = 480
+                    # rs_size = (rs_frame_width, rs_frame_height)
+                    # rs_result = cv2.VideoWriter(os.path.join(RS_CAMERA_FOLDER, "rs.mp4"),
+                    #             cv2.VideoWriter_fourcc('m','p','4','v'), Hz, rs_size)
 
                     # ego_video = WebcamVideoStream(src=EGOCENTRIC_CAMERA_NUMBER).start()
                     # ego_frame_width = 640
@@ -134,8 +136,8 @@ if __name__ == '__main__':
                     epoch += 1
 
                 # Realsense camera video
-                rs_frame = rs_video.frame
-                rs_result.write(rs_frame)
+                # rs_frame = rs_video.frame
+                # rs_result.write(rs_frame)
 
                 # Egocentric camera video
                 # ego_frame = ego_video.frame
@@ -205,14 +207,16 @@ if __name__ == '__main__':
                 if zero_tick == 0:
                     if epoch != 0:
                         # Save videos and variables
-                        rs_video.stop()
-                        rs_result.release()
+                        # rs_video.stop()
+                        # rs_result.release()
                         # ego_video.stop()
                         # ego_result.release()
 
                         # Save apriltag data as .npy file
+                        np.save(os.path.join(DATA_FOLDER_CURRENT, "tps_coef.npy"), tps_coef)
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
                         # np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
+                        np.save(os.path.join(DATA_FOLDER_CURRENT, "sim_traj.npy"), sim_data)
 
                         # Append data batch
                         if xy_yaw_data.shape[0] > desired_len:

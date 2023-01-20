@@ -7,14 +7,13 @@ import pyrealsense2 as rs
 
 from time import time, localtime
 from collections import deque
-# from imutils.video import WebcamVideoStream
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker
 
 from classes.timer import Timer
 from classes.visualizerclass import VisualizerClass
 from filter.mahony import Mahony
-from utils.utils_tps import get_tps_mat, get_real_xy_yaw
+from utils.utils_tps import get_tps_mat, get_real_xy_yaw_save_data
 from utils.utils_real import quaternion_to_vector
 from publisher import IMURPYPublisher, AprilTagPublisher
 from subscriber import FlagDataSubscriber, SimTrajSubscriber
@@ -43,7 +42,7 @@ if __name__ == '__main__':
     # IMU_REAL_TIME = False
     
     # Camera variables
-    REALSENSE_CAMERA_NUMBER = 8
+    REALSENSE_CAMERA_NUMBER = 4
     # EGOCENTRIC_CAMERA_NUMBER = 4
         
     pipeline = rs.pipeline()
@@ -70,7 +69,7 @@ if __name__ == '__main__':
     zero_tick = 0
     one_tick = 0
     epoch = 0
-    n_real = 2
+    n_real = 10
 
     # Apriltag, IMU data
     apriltag_batch = []
@@ -109,44 +108,22 @@ if __name__ == '__main__':
                     tm = localtime(time())
                     DATA_FOLDER_CURRENT = os.path.join(DATA_FOLDER_TRIAL, "%d. %d%02d%02d-%02d:%02d:%02d"%((epoch%n_real),tm.tm_year,tm.tm_mon,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec))
                     os.mkdir(DATA_FOLDER_CURRENT)
+                    DATA_FOLDER_RS = os.path.join(DATA_FOLDER_CURRENT, "Realsense Camera")
+                    os.mkdir(DATA_FOLDER_RS)
+                    # DATA_FOLDER_EGO = os.path.join(DATA_FOLDER_CURRENT, "Egocentric Camera")
+                    # os.mkdir(DATA_FOLDER_EGO)
+                    print("5. Folders created")
 
-                    # RS_CAMERA_FOLDER = os.path.join(DATA_FOLDER_CURRENT, "realsense_camera")
-                    # EGO_CAMERA_FOLDER = os.path.join(DATA_FOLDER_CURRENT, "egocentric_camera")
-                    # os.mkdir(RS_CAMERA_FOLDER)
-                    # os.mkdir(EGO_CAMERA_FOLDER)
-
-                    # manage video data
-                    # rs_video = WebcamVideoStream(src=REALSENSE_CAMERA_NUMBER).start()
-                    # rs_frame_width = 640
-                    # rs_frame_height = 480
-                    # rs_size = (rs_frame_width, rs_frame_height)
-                    # rs_result = cv2.VideoWriter(os.path.join(RS_CAMERA_FOLDER, "rs.mp4"),
-                    #             cv2.VideoWriter_fourcc('m','p','4','v'), Hz, rs_size)
-
-                    # ego_video = WebcamVideoStream(src=EGOCENTRIC_CAMERA_NUMBER).start()
-                    # ego_frame_width = 640
-                    # ego_frame_height = 480
-                    # ego_size = (ego_frame_width, ego_frame_height)
-                    # ego_result = cv2.VideoWriter(os.path.join(EGO_CAMERA_FOLDER, "ego.mp4"),
-                    #             cv2.VideoWriter_fourcc('m','p','4','v'), Hz, ego_size)
-
-                    print("5. Camera Initialized")
+                    # camera data information
+                    rs_video = []
+                    print("6. Camera ready")
 
                     # Check epoch
                     epoch += 1
 
-                # Realsense camera video
-                # rs_frame = rs_video.frame
-                # rs_result.write(rs_frame)
-
-                # Egocentric camera video
-                # ego_frame = ego_video.frame
-                # ego_frame_flip = cv2.flip(ego_frame, -1)
-                # ego_result.write(ego_frame_flip)
-
                 # Calculate real x, y
                 try:
-                    real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef, pipeline)
+                    real_x, real_y, real_yaw = get_real_xy_yaw_save_data(tps_coef, pipeline, rs_video)
                     prev_real_x, prev_real_y, prev_real_yaw = real_x, real_y, real_yaw
                 except:
                     real_x, real_y, real_yaw = prev_real_x, prev_real_y, prev_real_yaw
@@ -207,17 +184,16 @@ if __name__ == '__main__':
                 if zero_tick == 0:
                     if epoch != 0:
                         # Save videos and variables
-                        # rs_video.stop()
-                        # rs_result.release()
-                        # ego_video.stop()
-                        # ego_result.release()
+                        rs_out = cv2.VideoWriter(os.path.join(DATA_FOLDER_RS, "rs_video.mp4"), cv2.VideoWriter_fourcc('m','p','4','v'), 25, (640, 480), True)
+                        for i in range(len(rs_video)):
+                            rs_frame = rs_video[i]
+                            rs_out.write(rs_frame)
+                        rs_out.release()
 
-                        # Save apriltag data as .npy file
-                        np.save(os.path.join(DATA_FOLDER_CURRENT, "tps_coef.npy"), tps_coef)
+                        # Save data as .npy file
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
                         # np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
-                        np.save(os.path.join(DATA_FOLDER_CURRENT, "sim_traj.npy"), sim_data)
-
+                        
                         # Append data batch
                         if xy_yaw_data.shape[0] > desired_len:
                             apriltag_traj = xy_yaw_data[:desired_len,:]
@@ -282,7 +258,11 @@ if __name__ == '__main__':
 
                 if epoch%n_real == 0: # start/end of each trial
                     if zero_tick == 0:
-                        if epoch != 0: # end of current trial            
+                        if epoch != 0: # end of current trial
+                            # Save data
+                            np.save(os.path.join(DATA_FOLDER_TRIAL, "tps_coef.npy"), tps_coef)
+                            np.save(os.path.join(DATA_FOLDER_TRIAL, "sim_traj.npy"), sim_data)        
+                            
                             # Publish apriltag data to SPC
                             answer = str(input("Are you ready to publish data? (y/n): "))
                             while answer.lower() == 'y':
@@ -294,7 +274,7 @@ if __name__ == '__main__':
                         print("3. Waiting")
                         print("Start new cycle")
 
-                        # Create folders
+                        # Create folders and save data
                         DATA_FOLDER_TRIAL = os.path.join(DATA_FOLDER_TIME, "Trial %d"%(int(np.floor(epoch/n_real))))
                         os.mkdir(DATA_FOLDER_TRIAL)
 

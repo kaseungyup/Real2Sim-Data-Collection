@@ -44,12 +44,12 @@ if __name__ == '__main__':
 
 
             aprilTagSubscriber = AprilTagSubscriber()
-            imurpySubscriber = IMURPYSubscriber()
+            # imurpySubscriber = IMURPYSubscriber()
 
             if aprilTagSubscriber.traj != []:
                 real_traj = np.array(aprilTagSubscriber.traj).reshape(aprilTagSubscriber.length, aprilTagSubscriber.height, -1)
                 print("real traj shape: ", real_traj.shape)
 
-            if imurpySubscriber.traj != []:
-                rpy_data = np.array(imurpySubscriber.traj).reshape(imurpySubscriber.length, imurpySubscriber.height, -1)
-                print("final orientation || roll: %.2f, pitch: %.2f, yaw: %.2f"%(rpy_data[-1,-1,0],rpy_data[-1,-1,1],rpy_data[-1,-1,2]))
+            # if imurpySubscriber.traj != []:
+            #     rpy_data = np.array(imurpySubscriber.traj).reshape(imurpySubscriber.length, imurpySubscriber.height, -1)
+            #     print("final orientation || roll: %.2f, pitch: %.2f, yaw: %.2f"%(rpy_data[-1,-1,0],rpy_data[-1,-1,1],rpy_data[-1,-1,2]))

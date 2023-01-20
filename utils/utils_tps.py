@@ -1,5 +1,6 @@
 import cv2
 import math
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pyrealsense2 as rs
@@ -82,8 +83,8 @@ def get_tps_mat(pipeline, align): #, VERBOSE=True):
     # align = rs.align(align_to)
     # pipeline_wrapper = rs.pipeline_wrapper(pipeline)
 
-    x = np.linspace(170,470,4)
-    y = np.linspace(90,390,4)
+    x = np.linspace(120,520,5)
+    y = np.linspace(40,440,5)
     X, Y = np.meshgrid(x,y)
     ctrl_xy = np.stack([X,Y],axis=2).reshape(-1,2)
     real_pt = []
@@ -96,17 +97,18 @@ def get_tps_mat(pipeline, align): #, VERBOSE=True):
     while True:
         # Wait for a coherent pair of frames: depth and color
         frames = pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
+        # depth_frame = frames.get_depth_frame()
+        # color_frame = frames.get_color_frame()
         aligned_frames = align.process(frames)
         aligned_depth_frame = aligned_frames.get_depth_frame()
+        color_frame = aligned_frames.get_color_frame()
         depth_intrin = aligned_depth_frame.profile.as_video_stream_profile().intrinsics
 
-        if not depth_frame or not color_frame:
+        if not aligned_depth_frame or not color_frame:
             continue
 
         # Convert images to numpy arrays
-        depth_image = np.asanyarray(depth_frame.get_data())
+        depth_image = np.asanyarray(aligned_depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
 
         # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
@@ -132,7 +134,7 @@ def get_tps_mat(pipeline, align): #, VERBOSE=True):
         if cv2.waitKey(20) == 27:
             for i,j in enumerate(ctrl_xy):
                 pt = (int(ctrl_xy[i,0]),int(ctrl_xy[i,1]))
-                depth = depth_frame.get_distance(int(ctrl_xy[i,0]),int(ctrl_xy[i,1]))
+                depth = aligned_depth_frame.get_distance(int(ctrl_xy[i,0]),int(ctrl_xy[i,1]))
                 x,y,z = rs.rs2_deproject_pixel_to_point(depth_intrin,pixel=[int(ctrl_xy[i,0]),int(ctrl_xy[i,1])],depth=depth)
                 real_pt.append([x,y,z])
             break
@@ -209,8 +211,8 @@ def get_tps_mat(pipeline, align): #, VERBOSE=True):
     return tps_coef
 
 def get_real_xy_yaw(tps_coef, pipeline):
-    x = np.linspace(170,470,4)
-    y = np.linspace(90,390,4)
+    x = np.linspace(120,520,5)
+    y = np.linspace(40,440,5)
     X, Y = np.meshgrid(x,y)
     ctrl_xy = np.stack([X,Y],axis=2).reshape(-1,2)
     real_center_pos = np.zeros([1,2])
@@ -247,5 +249,52 @@ def get_real_xy_yaw(tps_coef, pipeline):
 
     return real_x, real_y, rad
 
+def get_real_xy_yaw_save_data(tps_coef, pipeline, video):
+    x = np.linspace(120,520,5)
+    y = np.linspace(40,440,5)
+    X, Y = np.meshgrid(x,y)
+    ctrl_xy = np.stack([X,Y],axis=2).reshape(-1,2)
+    real_center_pos = np.zeros([1,2])
+
+    # pipeline = rs.pipeline()
+    # config = rs.config()
+    # config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    # config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+    # pipeline.start(config)
+
+    frames = pipeline.wait_for_frames()
+    color_frame = frames.get_color_frame()
+    color_image = np.asanyarray(color_frame.get_data())
+    video.append(np.array(color_image))
+    gray = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
+    options = apriltag.DetectorOptions(families="tag36h11")
+    detector = apriltag.Detector(options)
+    results = detector.detect(gray)
+
+    for r in results:
+        (ptA, ptB, ptC, ptD) = r.corners
+        ptB = (int(ptB[0]), int(ptB[1]))
+        ptC = (int(ptC[0]), int(ptC[1]))
+        ptD = (int(ptD[0]), int(ptD[1]))
+        ptA = (int(ptA[0]), int(ptA[1]))
+        (cX, cY) = (int(r.center[0]), int(r.center[1]))
+        tany = abs((ptC[1]+ptD[1])/2 - cY)
+        tanx = (ptC[0]+ptD[0])/2 - cX
+        rad = math.atan2(tanx, tany)
+        center_pos = np.array([[cX, cY]])
+        real_center_pos = tps_trans(center_pos, ctrl_xy, tps_coef)
+
+    real_x = real_center_pos[0, 1]
+    real_y = -real_center_pos[0, 0]
+
+    return real_x, real_y, rad
+
 if __name__ == "__main__":
-    get_tps_mat()
+    pipeline = rs.pipeline()
+    config = rs.config()
+    align_to = rs.stream.color
+    align = rs.align(align_to)
+    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+    pipeline.start(config)
+    get_tps_mat(pipeline=pipeline, align=align)

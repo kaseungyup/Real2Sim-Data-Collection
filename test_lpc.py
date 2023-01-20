@@ -10,7 +10,7 @@ from visualization_msgs.msg import Marker
 from classes.timer import Timer
 from classes.visualizerclass import VisualizerClass
 from filter.mahony import Mahony
-from utils.utils_tps import get_tps_mat, get_real_xy_yaw
+from utils.utils_tps import get_tps_mat, get_real_xy_yaw_save_data
 from utils.utils_real import quaternion_to_vector
 from publisher import IMURPYPublisher, AprilTagPublisher
 from subscriber import FlagDataSubscriber, SimTrajSubscriber
@@ -103,19 +103,20 @@ if __name__ == '__main__':
                     tm = localtime(time())
                     DATA_FOLDER_CURRENT = os.path.join(DATA_FOLDER_TRIAL, "%d. %d%02d%02d-%02d:%02d:%02d"%((epoch%n_real),tm.tm_year,tm.tm_mon,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec))
                     os.mkdir(DATA_FOLDER_CURRENT)
-                    print("5. Ready to start")
+                    DATA_FOLDER_RS = os.path.join(DATA_FOLDER_CURRENT, "Realsense Camera")
+                    os.mkdir(DATA_FOLDER_RS)
+                    print("5. Folders created")
+
+                    # camera data information
+                    rs_video = []
+                    print("6. Camera ready")
 
                     # Check epoch
                     epoch += 1
                 
-                # Realsense camera video
-                rs_cam = cv2.VideoCapture(REALSENSE_CAMERA_NUMBER)
-                _, rs_img = rs_cam.read()
-                cv2.imshow('Realsense Camera', rs_img)
-
                 # Calculate real x, y
                 try:
-                    real_x, real_y, real_yaw = get_real_xy_yaw(tps_coef, pipeline)
+                    real_x, real_y, real_yaw = get_real_xy_yaw_save_data(tps_coef, pipeline, rs_video)
                     prev_real_x, prev_real_y, prev_real_yaw = real_x, real_y, real_yaw
                 except:
                     real_x, real_y, real_yaw = prev_real_x, prev_real_y, prev_real_yaw
@@ -174,14 +175,19 @@ if __name__ == '__main__':
 
             else: # trajectory has ended
                 if zero_tick == 0:
-                    cv2.destroyAllWindows()
-
                     if epoch != 0:
                         # Save data as .npy file
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "tps_coef.npy"), tps_coef)
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
                         # np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "sim_traj.npy"), sim_data)
+
+                        # Save videos
+                        rs_out = cv2.VideoWriter(os.path.join(DATA_FOLDER_RS, "rs_video.mp4"), cv2.VideoWriter_fourcc('m','p','4','v'), 25, (640, 480), True)
+                        for i in range(len(rs_video)):
+                            rs_frame = rs_video[i]
+                            rs_out.write(rs_frame)
+                        rs_out.release()
 
                         # Append data batch
                         if xy_yaw_data.shape[0] > desired_len:
@@ -247,7 +253,11 @@ if __name__ == '__main__':
 
                 if epoch%n_real == 0: # start/end of each trial
                     if zero_tick == 0:
-                        if epoch != 0: # end of current trial            
+                        if epoch != 0: # end of current trial 
+                            # Save data
+                            np.save(os.path.join(DATA_FOLDER_TRIAL, "tps_coef.npy"), tps_coef)
+                            np.save(os.path.join(DATA_FOLDER_TRIAL, "sim_traj.npy"), sim_data)     
+                                       
                             # Publish apriltag data to SPC
                             answer = str(input("Are you ready to publish data? (y/n): "))
                             while answer.lower() == 'y':

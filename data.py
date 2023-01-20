@@ -1,6 +1,3 @@
-# Save TPS coefficients
-# Save camera data (picture per frame as last resort)
-
 import cv2, os, serial, rospy
 import numpy as np
 import pyrealsense2 as rs
@@ -39,7 +36,7 @@ if __name__ == '__main__':
     # IMU variables
     # IMU_USB_NUMBER = 0
     # ser = serial.Serial('/dev/ttyUSB{}'.format(IMU_USB_NUMBER), 115200, timeout=1)
-    # IMU_REAL_TIME = False
+    # IMU_REAL_TIME = True
     
     # Camera variables
     REALSENSE_CAMERA_NUMBER = 4
@@ -59,7 +56,7 @@ if __name__ == '__main__':
     print("1. Start visualization_engine.")
     V = VisualizerClass(name='simple viz',HZ=Hz)
 
-    # Publisher, Subscriber initializatoin
+    # Publisher, Subscriber initialization
     FlagData = FlagDataSubscriber()
     SimTraj  = SimTrajSubscriber()
     AprilTag = AprilTagPublisher()
@@ -129,16 +126,14 @@ if __name__ == '__main__':
                     real_x, real_y, real_yaw = prev_real_x, prev_real_y, prev_real_yaw
 
 
-                # # Read IMU data
+                # Read IMU data
                 # line = ser.readline()
                 # imu_raw_data = line.decode('unicode_escape')
                 # imu_raw_data = imu_raw_data.split()
                 
-                # try:
-                #     acc_array = [-float(imu_raw_data[1].replace('\x00','')), float(imu_raw_data[0].replace('\x00','')), float(imu_raw_data[2].replace('\x00',''))]
-                #     gyro_array = [float(imu_raw_data[3].replace('\x00','')), float(imu_raw_data[4].replace('\x00','')), float(imu_raw_data[5].replace('\x00',''))]
-                # except:
-                #     pass
+                # if len(imu_raw_data) == 6:       
+                #     acc_array = np.array([-float(imu_raw_data[1].replace('\x00','')), float(imu_raw_data[0].replace('\x00','')), float(imu_raw_data[2].replace('\x00',''))])
+                #     gyro_array = np.array([float(imu_raw_data[3].replace('\x00','')), float(imu_raw_data[4].replace('\x00','')), float(imu_raw_data[5].replace('\x00',''))])
 
                 # acc_data.append(acc_array)
                 # gyro_data.append(gyro_array)                        
@@ -157,7 +152,7 @@ if __name__ == '__main__':
 
                 #     roll_data = (np.pi-roll_raw)*R2D # degrees
                 #     pitch_data = -pitch_raw*R2D # degrees
-                #     yaw_data = yaw_val*100/Hz/n_mahony*R2D # degrees
+                #     yaw_data = yaw_val*2/n_mahony*R2D # degrees
                 
                 # Append data
                 xy_yaw_data = np.append(xy_yaw_data, np.array([[real_x, real_y, real_yaw]]), axis=0)
@@ -166,9 +161,9 @@ if __name__ == '__main__':
                 # Visualizer
                 V.delete_meshes()
                 # if IMU_REAL_TIME:
-                    # V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
-                    #     frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
-                    #     roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
+                #     V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
+                #         frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
+                #         roll=roll_data*D2R,pitch=pitch_data*D2R,yaw=yaw_data*D2R)
                 # else:
                 V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
                     frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
@@ -287,6 +282,8 @@ if __name__ == '__main__':
                     if zero_tick == 0:
                         print("3. Waiting")
                         print("Number: ", epoch%n_real)
+                    else:
+                        zero_tick += 1
 
                 one_tick = 0
                 zero_tick += 1

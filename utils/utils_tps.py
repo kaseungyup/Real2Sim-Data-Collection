@@ -297,4 +297,12 @@ if __name__ == "__main__":
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
     pipeline.start(config)
-    get_tps_mat(pipeline=pipeline, align=align)
+    # tps_coef = get_tps_mat(pipeline=pipeline, align=align)
+    # np.save("tps_coef.npy", tps_coef)
+
+    tps_coef = np.load("tps_coef.npy")
+    x, y, rad = get_real_xy_yaw(tps_coef, pipeline)
+
+    print(x, y, rad)
+
+    pipeline.stop()

@@ -6,6 +6,5 @@ utils/__pycache__/
 ros_np_multiarray/__pycache__/
 ros_np_multiarray/src/
 test/
-data/
 utils/__pycache__/
 check_camera_number.ipynb

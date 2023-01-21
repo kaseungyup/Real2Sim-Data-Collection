@@ -122,8 +122,10 @@ if __name__ == '__main__':
                 try:
                     real_x, real_y, real_yaw = get_real_xy_yaw_save_data(tps_coef, pipeline, rs_video)
                     prev_real_x, prev_real_y, prev_real_yaw = real_x, real_y, real_yaw
+                    print(one_tick)
                 except:
                     real_x, real_y, real_yaw = prev_real_x, prev_real_y, prev_real_yaw
+                    print("Use previous data")
 
 
                 # Read IMU data
@@ -191,7 +193,7 @@ if __name__ == '__main__':
                         
                         # Append data batch
                         if xy_yaw_data.shape[0] > desired_len:
-                            apriltag_traj = xy_yaw_data[:desired_len,:]
+                            apriltag_traj = xy_yaw_data[-desired_len:,:]
                             print("Wrong apriltag trajectory length. Desired: %d, Actual: %d"%(desired_len,xy_yaw_data.shape[0]))
                             print("%d data removed."%(xy_yaw_data.shape[0]-desired_len))
                         elif xy_yaw_data.shape[0] < desired_len:
@@ -216,7 +218,7 @@ if __name__ == '__main__':
                         #         rpy_data = np.append(rpy_data, np.array([[roll_raw, pitch_raw, yaw_val+yaw_raw]]), axis=0)
                         
                         # if rpy_data.shape[0] > desired_len:
-                        #     imu_rpy = rpy_data[:desired_len,:]
+                        #     imu_rpy = rpy_data[-desired_len:,:]
                         #     print("Wrong IMU rpy length. Desired: %d, Actual: %d"%(desired_len,rpy_data.shape[0]))
                         #     print("%d data removed."%(rpy_data.shape[0]-desired_len))
                         # elif rpy_data.shape[0] < desired_len:
@@ -258,7 +260,7 @@ if __name__ == '__main__':
                             np.save(os.path.join(DATA_FOLDER_TRIAL, "tps_coef.npy"), tps_coef)
                             np.save(os.path.join(DATA_FOLDER_TRIAL, "sim_traj.npy"), sim_data)        
                             
-                            # Publish apriltag data to SPC
+                            # Publinsh apriltag data to SPC
                             answer = str(input("Are you ready to publish data? (y/n): "))
                             while answer.lower() == 'y':
                                 AprilTag.publish_once(apriltag_batch_ros)
@@ -277,6 +279,7 @@ if __name__ == '__main__':
                         # Subscribe flag/trajectory from SPC
                         flag = FlagData.flag
                         sim_len = SimTraj.length
+
                                     
                 else: # Waiting for next round
                     if zero_tick == 0:

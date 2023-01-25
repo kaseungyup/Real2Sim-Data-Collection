@@ -3,6 +3,7 @@ import numpy as np
 import pyrealsense2 as rs
 
 from time import time, localtime
+from imutils.video import WebcamVideoStream
 from collections import deque
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker
@@ -40,7 +41,8 @@ if __name__ == '__main__':
     
     # Camera variables
     REALSENSE_CAMERA_NUMBER = 4
-    # EGOCENTRIC_CAMERA_NUMBER = 4
+    SAVE_EGO = False
+    if SAVE_EGO: EGOCENTRIC_CAMERA_NUMBER = 8
         
     pipeline = rs.pipeline()
     config = rs.config()
@@ -107,12 +109,16 @@ if __name__ == '__main__':
                     os.mkdir(DATA_FOLDER_CURRENT)
                     DATA_FOLDER_RS = os.path.join(DATA_FOLDER_CURRENT, "Realsense Camera")
                     os.mkdir(DATA_FOLDER_RS)
-                    # DATA_FOLDER_EGO = os.path.join(DATA_FOLDER_CURRENT, "Egocentric Camera")
-                    # os.mkdir(DATA_FOLDER_EGO)
+                    if SAVE_EGO:
+                        DATA_FOLDER_EGO = os.path.join(DATA_FOLDER_CURRENT, "Egocentric Camera")
+                        os.mkdir(DATA_FOLDER_EGO)
                     print("5. Folders created")
 
                     # camera data information
                     rs_video = []
+                    if SAVE_EGO:
+                        ego_video_data = []
+                        ego_video = WebcamVideoStream(src=EGOCENTRIC_CAMERA_NUMBER).start()
                     print("6. Camera ready")
 
                     # Check epoch
@@ -159,6 +165,10 @@ if __name__ == '__main__':
                 # Append data
                 xy_yaw_data = np.append(xy_yaw_data, np.array([[real_x, real_y, real_yaw]]), axis=0)
                 # if IMU_REAL_TIME: rpy_data = np.append(rpy_data, np.array([[roll_data, pitch_data, yaw_data]]), axis=0)
+                if SAVE_EGO:
+                    ego_frame = ego_video.frame
+                    ego_frame_flip = cv2.flip(ego_frame, -1)
+                    ego_video_data.append(ego_frame_flip)
 
                 # Visualizer
                 V.delete_meshes()
@@ -186,6 +196,15 @@ if __name__ == '__main__':
                             rs_frame = rs_video[i]
                             rs_out.write(rs_frame)
                         rs_out.release()
+
+                        if SAVE_EGO:
+                            ego_video.stop()
+                            ego_out = cv2.VideoWriter(os.path.join(DATA_FOLDER_EGO, "ego_video.mp4"), cv2.VideoWriter_fourcc('m','p','4','v'), 25, (640, 480), True)
+                            for i in range(len(ego_video_data)):
+                                ego_frame_data = ego_video_data[i]
+                                ego_out.write(ego_frame_data)
+                            ego_out.release()
+
 
                         # Save data as .npy file
                         np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)

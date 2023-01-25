@@ -2,7 +2,7 @@ import cv2, os, serial, rospy
 import numpy as np
 import pyrealsense2 as rs
 
-from time import time, localtime
+from time import time, localtime, sleep
 from imutils.video import WebcamVideoStream
 from collections import deque
 from std_msgs.msg import ColorRGBA
@@ -40,7 +40,6 @@ if __name__ == '__main__':
     # IMU_REAL_TIME = True
     
     # Camera variables
-    REALSENSE_CAMERA_NUMBER = 4
     SAVE_EGO = False
     if SAVE_EGO: EGOCENTRIC_CAMERA_NUMBER = 8
         
@@ -189,6 +188,7 @@ if __name__ == '__main__':
 
             else: # trajectory has ended 
                 if zero_tick == 0:
+                    pipeline.stop()
                     if epoch != 0:
                         # Save videos and variables
                         rs_out = cv2.VideoWriter(os.path.join(DATA_FOLDER_RS, "rs_video.mp4"), cv2.VideoWriter_fourcc('m','p','4','v'), 25, (640, 480), True)
@@ -264,6 +264,10 @@ if __name__ == '__main__':
                     #     acc_data = []
                     #     gyro_data = []
                     #     yaw_val = 0.0
+
+                    # restart pipeline
+                    sleep(3)
+                    pipeline.start(config)
 
                 else:
                     if epoch != 0:

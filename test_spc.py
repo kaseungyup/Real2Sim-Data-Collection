@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
     Hz = 50
     max_sec = 6
-    n_real_roll = 2
+    n_real_roll = 10
 
     rospy.init_node('spc', anonymous=True)
     FlagDataPublisher  = FlagDataPublisher()

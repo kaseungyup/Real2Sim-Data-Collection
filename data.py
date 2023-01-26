@@ -7,6 +7,7 @@ from imutils.video import WebcamVideoStream
 from collections import deque
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Vector3
 
 from classes.timer import Timer
 from classes.visualizerclass import VisualizerClass
@@ -24,6 +25,7 @@ if __name__ == '__main__':
     n_mahony = 10 # number of previous data for mahony filter
     D2R = np.pi/180
     R2D = 180/np.pi
+    SAVE_DATA = False
     
     # Create folders
     CURR_FOLDER = os.getcwd()
@@ -31,7 +33,7 @@ if __name__ == '__main__':
     DATA_FOLDER = os.path.join(CURR_FOLDER , "data")
     if not os.path.isdir(DATA_FOLDER): os.mkdir(DATA_FOLDER)
     DATA_FOLDER_TIME = os.path.join(CURR_FOLDER , "data", "%d%02d%02d-%02d:%02d:%02d"%(tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec))
-    os.mkdir(DATA_FOLDER_TIME)
+    if SAVE_DATA: os.mkdir(DATA_FOLDER_TIME)
     stl_path = 'file://' + CURR_FOLDER + '/ROS_viz_engine/snapbot_super_low_resol.stl'
 
     # IMU variables
@@ -89,6 +91,7 @@ if __name__ == '__main__':
                     zero_tick = 0
 
                     # Visualizer
+                    V.reset_markers()
                     V.reset_lines()
                     V.reset_meshes()
 
@@ -105,12 +108,12 @@ if __name__ == '__main__':
                     # create folder
                     tm = localtime(time())
                     DATA_FOLDER_CURRENT = os.path.join(DATA_FOLDER_TRIAL, "%d. %d%02d%02d-%02d:%02d:%02d"%((epoch%n_real),tm.tm_year,tm.tm_mon,tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec))
-                    os.mkdir(DATA_FOLDER_CURRENT)
+                    if SAVE_DATA: os.mkdir(DATA_FOLDER_CURRENT)
                     DATA_FOLDER_RS = os.path.join(DATA_FOLDER_CURRENT, "Realsense Camera")
-                    os.mkdir(DATA_FOLDER_RS)
+                    if SAVE_DATA: os.mkdir(DATA_FOLDER_RS)
                     if SAVE_EGO:
                         DATA_FOLDER_EGO = os.path.join(DATA_FOLDER_CURRENT, "Egocentric Camera")
-                        os.mkdir(DATA_FOLDER_EGO)
+                        if SAVE_DATA: os.mkdir(DATA_FOLDER_EGO)
                     print("5. Folders created")
 
                     # camera data information
@@ -179,9 +182,14 @@ if __name__ == '__main__':
                 V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
                     frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
                     roll=0,pitch=0,yaw=real_yaw)
+                if one_tick%Hz == 0:
+                    traj_num = int(one_tick*50/Hz)
+                    V.append_marker(x=curr_traj[traj_num,0],y=curr_traj[traj_num,1],z=0,frame_id='map',roll=0,pitch=0,yaw=curr_traj[traj_num,2],
+                        scale=Vector3(0.2,0.06,0.06),color=ColorRGBA(1.0,0.0,0.0,0.5),marker_type=Marker.ARROW)
 
-                V.publish_meshes()
+                V.publish_markers()
                 V.publish_lines()
+                V.publish_meshes()
 
                 one_tick += 1
 
@@ -207,8 +215,8 @@ if __name__ == '__main__':
 
 
                         # Save data as .npy file
-                        np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
-                        # np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
+                        if SAVE_DATA: np.save(os.path.join(DATA_FOLDER_CURRENT, "xy_yaw.npy"), xy_yaw_data)
+                        # if SAVE_DATA: np.save(os.path.join(DATA_FOLDER_CURRENT, "rpy.npy"), rpy_data)
                         
                         # Append data batch
                         if xy_yaw_data.shape[0] > desired_len:
@@ -274,14 +282,16 @@ if __name__ == '__main__':
                         # Visualize real trajectory
                         V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
                             frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
+
+                        V.publish_markers()
                         V.publish_lines()
 
                 if epoch%n_real == 0: # start/end of each trial
                     if zero_tick == 0:
                         if epoch != 0: # end of current trial
                             # Save data
-                            np.save(os.path.join(DATA_FOLDER_TRIAL, "tps_coef.npy"), tps_coef)
-                            np.save(os.path.join(DATA_FOLDER_TRIAL, "sim_traj.npy"), sim_data)        
+                            if SAVE_DATA: np.save(os.path.join(DATA_FOLDER_TRIAL, "tps_coef.npy"), tps_coef)
+                            if SAVE_DATA: np.save(os.path.join(DATA_FOLDER_TRIAL, "sim_traj.npy"), sim_data)        
                             
                             # Publinsh apriltag data to SPC
                             answer = str(input("Are you ready to publish data? (y/n): "))
@@ -296,7 +306,7 @@ if __name__ == '__main__':
 
                         # Create folders and save data
                         DATA_FOLDER_TRIAL = os.path.join(DATA_FOLDER_TIME, "Trial %d"%(int(np.floor(epoch/n_real))))
-                        os.mkdir(DATA_FOLDER_TRIAL)
+                        if SAVE_DATA: os.mkdir(DATA_FOLDER_TRIAL)
 
                     else:
                         # Subscribe flag/trajectory from SPC

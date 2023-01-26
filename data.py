@@ -25,7 +25,7 @@ if __name__ == '__main__':
     n_mahony = 10 # number of previous data for mahony filter
     D2R = np.pi/180
     R2D = 180/np.pi
-    SAVE_DATA = False
+    SAVE_DATA = True
     
     # Create folders
     CURR_FOLDER = os.getcwd()
@@ -324,7 +324,7 @@ if __name__ == '__main__':
                 one_tick = 0
                 zero_tick += 1
 
-        rospy.sleep(1e-8)
+            rospy.sleep(1e-8)
 
     V.delete_meshes()
     V.delete_lines()

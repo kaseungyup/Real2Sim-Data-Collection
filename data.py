@@ -91,7 +91,7 @@ if __name__ == '__main__':
                     zero_tick = 0
 
                     # Visualizer
-                    V.reset_markers()
+                    # V.reset_markers()
                     V.reset_lines()
                     V.reset_meshes()
 
@@ -182,12 +182,13 @@ if __name__ == '__main__':
                 V.append_mesh(x=real_x-xy_yaw_data[0,0],y=real_y-xy_yaw_data[0,1],z=0,scale=1.0,dae_path=stl_path,
                     frame_id='map', color=ColorRGBA(1.0,1.0,1.0,0.5),
                     roll=0,pitch=0,yaw=real_yaw)
-                if one_tick%Hz == 0:
-                    traj_num = int(one_tick*50/Hz)
-                    V.append_marker(x=curr_traj[traj_num,0],y=curr_traj[traj_num,1],z=0,frame_id='map',roll=0,pitch=0,yaw=curr_traj[traj_num,2],
-                        scale=Vector3(0.2,0.06,0.06),color=ColorRGBA(1.0,0.0,0.0,0.5),marker_type=Marker.ARROW)
+                # if one_tick%Hz == 0:
+                #     traj_num = int(one_tick*50/Hz)
+                #     if traj_num < curr_traj.shape[0]:
+                #         V.append_marker(x=curr_traj[traj_num,0],y=curr_traj[traj_num,1],z=0,frame_id='map',roll=0,pitch=0,yaw=curr_traj[traj_num,2],
+                #             scale=Vector3(0.1,0.03,0.03),color=ColorRGBA(1.0,0.0,0.0,0.5),marker_type=Marker.ARROW)
 
-                V.publish_markers()
+                # V.publish_markers()
                 V.publish_lines()
                 V.publish_meshes()
 
@@ -283,7 +284,7 @@ if __name__ == '__main__':
                         V.append_line(x_array=apriltag_traj[:,0],y_array=apriltag_traj[:,1],z=0.0,r=0.01,
                             frame_id='map',color=ColorRGBA(0.0,0.0,1.0,1.0),marker_type=Marker.LINE_STRIP)
 
-                        V.publish_markers()
+                        # V.publish_markers()
                         V.publish_lines()
 
                 if epoch%n_real == 0: # start/end of each trial

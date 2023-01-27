@@ -20,7 +20,7 @@ from ros_np_multiarray import ros_np_multiarray as rnm
 
 if __name__ == '__main__':
 
-    Hz = 25
+    Hz = 10
     desired_len = int(Hz*300/50)
     n_mahony = 10 # number of previous data for mahony filter
     D2R = np.pi/180

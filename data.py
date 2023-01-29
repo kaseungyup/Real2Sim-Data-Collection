@@ -34,7 +34,7 @@ if __name__ == '__main__':
     if not os.path.isdir(DATA_FOLDER): os.mkdir(DATA_FOLDER)
     DATA_FOLDER_TIME = os.path.join(CURR_FOLDER , "data", "%d%02d%02d-%02d:%02d:%02d"%(tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec))
     if SAVE_DATA: os.mkdir(DATA_FOLDER_TIME)
-    stl_path = 'file://' + CURR_FOLDER + '/ROS_viz_engine/snapbot_super_low_resol.stl'
+    stl_path = 'file://' + CURR_FOLDER + '/ROS_viz_engine/snapbot_6legs_low_resol.stl'
 
     # IMU variables
     # IMU_USB_NUMBER = 0

@@ -68,28 +68,28 @@ class SimTrajPublisher():
                 self.run(data)
                 rospy.loginfo('{} Published'.format(data))
                 break
-       
+
+class AnchorPublisher():
+    def __init__(self):
+        self.anchor_pub = rospy.Publisher('anchor', Float32MultiArray, queue_size=10)
+
+    def run(self, data):
+        self.anchor_pub.publish(data)
+
+    def publish_once(self, data):
+         while not rospy.is_shutdown():
+            rate = rospy.Rate(30)
+            connections = self.anchor_pub.get_num_connections()
+            if connections > 0:
+                self.run(data)
+                rospy.loginfo('{} Published'.format(data))
+                break
+            
 if __name__ == "__main__":
     rospy.init_node('publisher', anonymous=True)
-    # test_traj = rnm.to_multiarray_f32(np.array([[[1,2,3],[4,5,6],[7,8,9]]]).reshape(3,3,1))
+    test_traj = rnm.to_multiarray_f32(np.array([[[1,2,3],[4,5,6],[7,8,9]]]).reshape(3,3,1))
     Flag = FlagDataPublisher()
     SimTraj = SimTrajPublisher()
-    # while not rospy.is_shutdown():
-    #     rospy.Rate(17)
-    #     SimTraj.publish_once(test_traj)
-    #     Flag.publish_once(1)
-    #     Flag.publish_once(2)
-    #     Flag.publish_once(3)
-    #     Flag.publish_once(4)
-    #     Flag.publish_once(5)
-    #     Flag.publish_once(6)
-    #     Flag.publish_once(7)
-
-    sim_traj = rnm.to_multiarray_f32(np.ones(shape=(2,300,3)))
-
-    # SimTraj.publish_once(sim_traj)
-    # Flag.publish_once(1)
-
-    Flag.publish_once(0)
-
-    
+    for i in range(100):
+        SimTraj.publish_once(test_traj)
+        Flag.publish_once(5)       

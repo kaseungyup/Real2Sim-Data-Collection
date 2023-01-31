@@ -59,7 +59,7 @@ class AnchorSubscriber():
         self.length = 0
         self.height = 0
         self.traj = []
-        self.sim_traj_sub = rospy.Subscriber("anchor", Float32MultiArray, self.callback)
+        self.anchor_sub = rospy.Subscriber("anchor", Float32MultiArray, self.callback)
 
     def callback(self, data):
         self.length = int(data.layout.dim[0].size)

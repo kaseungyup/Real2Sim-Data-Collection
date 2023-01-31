@@ -15,7 +15,7 @@ from filter.mahony import Mahony
 from utils.utils_tps import get_tps_mat, get_real_xy_yaw_save_data
 from utils.utils_real import quaternion_to_vector
 from publisher import IMURPYPublisher, AprilTagPublisher
-from subscriber import FlagDataSubscriber, SimTrajSubscriber
+from subscriber import FlagDataSubscriber, SimTrajSubscriber, AnchorSubscriber
 from ros_np_multiarray import ros_np_multiarray as rnm
 
 if __name__ == '__main__':
@@ -63,6 +63,7 @@ if __name__ == '__main__':
     FlagData = FlagDataSubscriber()
     SimTraj  = SimTrajSubscriber()
     AprilTag = AprilTagPublisher()
+    Anchor   = AnchorSubscriber()
     # IMURPY   = IMURPYPublisher()
 
     # Loop variables
@@ -97,6 +98,7 @@ if __name__ == '__main__':
 
                     # Simulation trajectory
                     sim_data = np.array(SimTraj.traj).reshape((SimTraj.length, SimTraj.height, SimTraj.num))
+                    anchor_data = np.array(Anchor.traj).reshape((Anchor.length, Anchor.height))
                     curr_traj = sim_data[epoch%n_real,:,:]
                     print(curr_traj.shape)
                     
@@ -200,7 +202,7 @@ if __name__ == '__main__':
                     pipeline.stop()
                     if epoch != 0:
                         # Save videos and variables
-                        rs_out = cv2.VideoWriter(os.path.join(DATA_FOLDER_RS, "rs_video.mp4"), cv2.VideoWriter_fourcc('m','p','4','v'), 25, (640, 480), True)
+                        rs_out = cv2.VideoWriter(os.path.join(DATA_FOLDER_RS, "rs_video.mp4"), cv2.VideoWriter_fourcc('m','p','4','v'), Hz, (640, 480), True)
                         for i in range(len(rs_video)):
                             rs_frame = rs_video[i]
                             rs_out.write(rs_frame)
@@ -208,7 +210,7 @@ if __name__ == '__main__':
 
                         if SAVE_EGO:
                             ego_video.stop()
-                            ego_out = cv2.VideoWriter(os.path.join(DATA_FOLDER_EGO, "ego_video.mp4"), cv2.VideoWriter_fourcc('m','p','4','v'), 25, (640, 480), True)
+                            ego_out = cv2.VideoWriter(os.path.join(DATA_FOLDER_EGO, "ego_video.mp4"), cv2.VideoWriter_fourcc('m','p','4','v'), Hz, (640, 480), True)
                             for i in range(len(ego_video_data)):
                                 ego_frame_data = ego_video_data[i]
                                 ego_out.write(ego_frame_data)
@@ -293,7 +295,8 @@ if __name__ == '__main__':
                             # Save data
                             if SAVE_DATA: np.save(os.path.join(DATA_FOLDER_TRIAL, "tps_coef.npy"), tps_coef)
                             if SAVE_DATA: np.save(os.path.join(DATA_FOLDER_TRIAL, "sim_traj.npy"), sim_data)        
-                            
+                            if SAVE_DATA: np.save(os.path.join(DATA_FOLDER_TRIAL, "anchor.npy"), anchor_data)        
+                          
                             # Publinsh apriltag data to SPC
                             answer = str(input("Are you ready to publish data? (y/n): "))
                             while answer.lower() == 'y':
